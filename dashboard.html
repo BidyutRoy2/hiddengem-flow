@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HiddenGem Flow — Dashboard</title>
+    <link rel="icon" href="/icons/icon32.png">
+    <script type="module" crossorigin src="/chunks/dashboard-CI4RHp6j.js"></script>
+    <link rel="modulepreload" crossorigin href="/chunks/tasks-BC5n5DLe.js">
+    <link rel="stylesheet" crossorigin href="/assets/dashboard-B2oXtSbl.css">
+  </head>
+  <body>
+    <header class="top">
+      <img class="wordmark" src="/logo-v2-wordmark.png" alt="HiddenGem Flow — emerald gem with gold flow">
+      <div class="top-text">
+        <h1>HiddenGem Flow</h1>
+        <p>Your daily tasks and scripts, one flow. v1.0.0</p>
+      </div>
+      <a class="github-btn" href="https://github.com/BidyutRoy2/hiddengem-flow-store" target="_blank" rel="noopener noreferrer" title="Official Script Store on GitHub — BidyutRoy2/hiddengem-flow-store">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" /></svg>
+        <span><strong>GitHub</strong><small>BidyutRoy2/hiddengem-flow-store</small></span>
+      </a>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="Dashboard sections">
+      <button class="tab active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+      <button class="tab" data-tab="tasks" role="tab" aria-selected="false">Daily Tasks</button>
+      <button class="tab" data-tab="scripts" role="tab" aria-selected="false">Scripts</button>
+      <button class="tab" data-tab="store" role="tab" aria-selected="false">Script Store</button>
+      <button class="tab" data-tab="logs" role="tab" aria-selected="false">Logs</button>
+      <button class="tab" data-tab="settings" role="tab" aria-selected="false">Settings</button>
+    </nav>
+
+    <main>
+      <section id="panel-overview" class="panel active">
+        <div class="grid">
+          <div class="card">
+            <h2>At a glance</h2>
+            <dl class="stats">
+              <div><dt>Saved task sites</dt><dd id="stat-tasks">0</dd></div>
+              <div><dt>Installed scripts</dt><dd id="stat-scripts">0</dd></div>
+              <div><dt>Extension</dt><dd>v1.0.0</dd></div>
+              <div><dt>Platform</dt><dd>Chrome MV3</dd></div>
+            </dl>
+            <p class="hint">These are live counts from extension storage — 0 because nothing has been saved yet. Nothing here is demo data.</p>
+          </div>
+          <div class="card">
+            <h2>Floating window</h2>
+            <p>Click the <b>HiddenGem Flow</b> toolbar icon on any website to open the draggable floating window. Drag it by its header — its position is remembered.</p>
+            <p class="hint">The window runs in a Shadow DOM, so the site's own styles cannot break it.</p>
+          </div>
+          <div class="card">
+            <h2>What this extension does</h2>
+            <p><strong>Daily Tasks</strong> — save the sites you open every day and open them all in one click. <strong>Scripts</strong> — a userscript manager: write or import scripts, scan them, and run them on the sites they match. <strong>Script Store</strong> — the Official Store on GitHub: load it, search it, install a script with one confirm. <strong>Logs</strong> — per-tab status for every tab the extension opens, with Stop All.</p>
+          </div>
+          <div class="card">
+            <h2>Official Script Store on GitHub</h2>
+            <p>All official scripts live in the public store repo — browse them, read the code, and report issues there.</p>
+            <p><a class="gh-link" href="https://github.com/BidyutRoy2/hiddengem-flow-store" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" /></svg>
+              github.com/BidyutRoy2/hiddengem-flow-store</a></p>
+            <p class="hint">Nothing installs itself from the store — every script needs your one-click confirm first.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-tasks" class="panel">
+        <div class="card">
+          <h2>Daily Tasks</h2>
+          <p>Save the websites you open every day, by name and URL. Click a site to open it in a new tab, tick several and open them together, or open them all at once — each in its own tab. The first tab opens in front; the rest open in the background.</p>
+          <form id="taskForm" novalidate>
+            <div class="form-row">
+              <label>
+                <span>Name</span>
+                <input id="taskName" type="text" placeholder="e.g. Gmail" autocomplete="off" maxlength="120">
+              </label>
+              <label class="grow">
+                <span>URL</span>
+                <input id="taskUrl" type="text" placeholder="e.g. mail.google.com or https://mail.google.com" autocomplete="off" inputmode="url" maxlength="2048">
+              </label>
+            </div>
+            <p id="taskError" class="error" role="alert" hidden></p>
+            <div class="row">
+              <button id="taskSave" type="submit" class="primary">Save task</button>
+              <button id="taskCancelEdit" type="button" class="secondary" hidden>Cancel edit</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="tasks-toolbar">
+            <input id="taskSearch" type="search" placeholder="Search by name or URL…" aria-label="Search task sites" autocomplete="off">
+            <span id="taskCount" class="hint" role="status"></span>
+          </div>
+          <div class="row tasks-actions">
+            <label class="select-all"><input id="selectAllTasks" type="checkbox"> Select all</label>
+            <button id="openSelected" type="button" class="secondary" disabled>Open selected</button>
+            <button id="openAllTasks" type="button" class="secondary">Open All</button>
+          </div>
+          <p id="taskOpenStatus" class="hint" role="status" hidden></p>
+          <ul id="taskList" class="task-list"></ul>
+          <p id="taskEmpty" class="hint">No task sites saved yet — add your first one above.</p>
+        </div>
+      </section>
+
+      <section id="panel-scripts" class="panel">
+        <div class="card">
+          <h2>Scripts</h2>
+          <div id="scriptBridgeBanner" class="bridge-banner" role="status" hidden>
+            <p>This site already has an official script — add it in one click from Script Store.</p>
+            <div class="row">
+              <button id="scriptBridgeOpen" type="button" class="primary">Open Script Store</button>
+              <button id="scriptBridgeDismiss" type="button" class="secondary">Dismiss</button>
+            </div>
+          </div>
+          <p>A userscript manager: create, import, run, back up, delete and upgrade userscripts. Scripts run through Chrome's <code>chrome.userScripts</code> API — only on pages where you enable them, and only on the sites their <code>@match</code> lines name. Chrome also needs site access for those sites (a registered script without it never runs): click <strong>Grant site access</strong> on the script below, or set Site access → On all sites in the extension details.</p>
+          <div id="scriptEngineBanner" class="engine-banner" role="alert" hidden>
+            <strong>User scripts are not enabled yet.</strong>
+            <p>The <code>userScripts</code> permission alone is not enough — Chrome also needs you to flip a per-extension toggle:</p>
+            <ol>
+              <li>Open <code>chrome://extensions</code></li>
+              <li>Find <strong>HiddenGem Flow</strong> → <strong>Details</strong></li>
+              <li>Turn <strong>Allow User Scripts</strong> ON</li>
+              <li>Reload this page — and reload any page where you want scripts to run</li>
+            </ol>
+            <p class="hint">Without that toggle, scripts are saved but never run, and nothing fails silently — this banner stays until the toggle is on. The button below only opens the Details page; no extension can flip the toggle for you.</p>
+            <div class="row">
+              <button id="scriptEngineOpenDetails" type="button" class="secondary">Open extension details to enable</button>
+            </div>
+          </div>
+          <div class="row script-toolbar">
+            <button id="scriptNew" type="button" class="primary">＋ Create new script</button>
+            <button id="scriptImportBtn" type="button" class="secondary">Import…</button>
+            <button id="scriptBackup" type="button" class="secondary">Backup (export JSON)</button>
+            <button id="scriptRestoreBtn" type="button" class="secondary">Restore backup…</button>
+            <input id="scriptImportFile" type="file" hidden>
+            <input id="scriptRestoreFile" type="file" accept=".json,application/json" hidden>
+          </div>
+          <p class="hint">GM functions that actually work: <code>GM_setValue</code>, <code>GM_getValue</code>, <code>GM_notification</code>, <code>GM_addStyle</code> (and the <code>GM.*</code> object form). <strong>Not supported:</strong> GM_xmlhttpRequest, GM_openInTab, GM_download, GM_setClipboard, unsafeWindow and every other GM_* function — a script that calls one gets a scanner warning at install and a runtime error on the page, never a fake that pretends to work. GM values are stored in the page origin's localStorage, namespaced per script — the page can read them, so never store secrets with GM_*. Only JavaScript userscripts can run in a browser page: a file in another language can be opened here to inspect it, but it cannot run as a script.</p>
+        </div>
+
+        <div class="card" id="scriptEditorCard" hidden>
+          <h2 id="scriptEditorTitle">New script</h2>
+          <p class="hint">Write the script — including its <code>// ==UserScript==</code> metadata block — or paste an existing one. Tab inserts spaces instead of moving focus.</p>
+          <textarea id="scriptEditor" spellcheck="false" rows="18" aria-label="Script code">// ==UserScript==
+// @name        My first script
+// @namespace   hiddengem-flow
+// @version     1.0
+// @description Says hello on example.com.
+// @match       https://example.com/*
+// @grant       none
+// ==/UserScript==
+
+(() => {
+  'use strict';
+  console.log('Hello from HiddenGem Flow!');
+})();
+</textarea>
+          <div id="scriptMeta" class="meta-box" aria-live="polite"></div>
+          <div id="scriptScan" class="scan-box" hidden></div>
+          <p id="scriptEditorError" class="error" role="alert" hidden></p>
+          <div class="row">
+            <button id="scriptScanBtn" type="button" class="primary">Scan &amp; review</button>
+            <button id="scriptConfirmInstall" type="button" class="primary" hidden>Confirm install</button>
+            <button id="scriptCancelEdit" type="button" class="secondary">Cancel</button>
+          </div>
+          <p class="hint">The scan is a warning, never a block — even a low score can be installed after you confirm. Read the findings first: the scan is a heuristic, not proof a script is safe.</p>
+        </div>
+
+        <div class="card" id="scriptImportCard" hidden>
+          <h2>Import a script</h2>
+          <div class="row">
+            <button id="scriptImportFileBtn" type="button" class="secondary">Choose a script file…</button>
+          </div>
+          <p class="hint">Any text file works — <code>.js</code>, <code>.user.js</code> or <code>.txt</code>, just like exporting a script as text. The file is read on your machine and loaded into the editor for a scan + confirm; nothing installs directly from a file.</p>
+          <label class="import-label">
+            <span>Paste script code</span>
+            <textarea id="scriptPaste" spellcheck="false" rows="8" placeholder="// ==UserScript==
+// @name        …"></textarea>
+          </label>
+          <div class="row">
+            <button id="scriptPasteImport" type="button" class="primary">Import pasted code</button>
+          </div>
+          <label class="import-label">
+            <span>Import from URL (fetched only when you click — the page you fetch can see the request)</span>
+            <input id="scriptImportUrl" type="text" placeholder="https://example.com/my-script.user.js" autocomplete="off" inputmode="url">
+          </label>
+          <div class="row">
+            <button id="scriptUrlImport" type="button" class="secondary">Fetch &amp; import from URL</button>
+          </div>
+          <p id="scriptImportError" class="error" role="alert" hidden></p>
+          <p id="scriptImportNote" class="hint" hidden></p>
+          <p class="hint">Importing loads the code into the editor above for a scan + confirm — nothing is installed straight from a file, paste or URL.</p>
+        </div>
+
+        <div class="card">
+          <div class="row script-list-head">
+            <h2>Installed scripts</h2>
+            <span id="scriptCount" class="hint" role="status"></span>
+          </div>
+          <ul id="scriptList" class="script-list"></ul>
+          <p id="scriptEmpty" class="hint">No scripts installed yet — create one above, or import a <code>.js</code>, <code>.user.js</code> or <code>.txt</code> file.</p>
+        </div>
+      </section>
+
+      <section id="panel-store" class="panel">
+        <div class="card">
+          <h2>Script Store</h2>
+          <p>Official scripts from the public store repo (<code>hiddengem-flow-store</code>), fetched through jsDelivr first and raw.githubusercontent as a fallback. Nothing here installs itself — every install needs your confirm first, after a security scan. Only JavaScript userscripts are listed: other file types cannot run in a browser page.</p>
+          <div class="row store-toolbar">
+            <button id="storeLoad" type="button" class="primary">Load store</button>
+            <span id="storeSource" class="badge-src" hidden></span>
+            <span id="storeMeta" class="hint" role="status"></span>
+          </div>
+          <p id="storeError" class="error" role="alert" hidden></p>
+          <p id="storeNote" class="hint" hidden></p>
+          <div id="storeNotPublished" hidden>
+            <p>The official store repo is not published yet, or it could not be reached right now. No scripts to show — nothing here is fake.</p>
+            <p><a class="gh-link" href="https://github.com/BidyutRoy2/hiddengem-flow-store" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" /></svg>
+              Open the store on GitHub</a></p>
+          </div>
+          <p class="hint">The store is fetched only when you click <strong>Load store</strong> — never automatically when this dashboard opens. A fetched list is saved as a cached copy, so the Smart Notification Bridge can check it later without any network request.</p>
+        </div>
+
+        <div class="card" id="storeListCard" hidden>
+          <div class="tasks-toolbar">
+            <input id="storeSearch" type="search" placeholder="Search by name, description or site…" aria-label="Search store scripts" autocomplete="off">
+            <select id="storeSort" aria-label="Sort store scripts">
+              <option value="updated" selected>Recently updated</option>
+              <option value="published">Latest</option>
+              <option value="name">Name A–Z</option>
+            </select>
+          </div>
+          <ul id="storeList" class="store-list"></ul>
+          <p id="storeNoResults" class="hint" hidden>No scripts match your search.</p>
+          <p id="storeEmpty" class="hint" hidden>The store loaded, but it lists no scripts yet.</p>
+        </div>
+
+        <div class="card" id="storeDetailCard" hidden>
+          <h2 id="storeDetailName">Script</h2>
+          <p id="storeDetailMeta" class="script-meta-line"></p>
+          <p id="storeDetailDesc"></p>
+          <div id="storeDetailScan" class="scan-box" hidden></div>
+          <p id="storeDetailError" class="error" role="alert" hidden></p>
+          <p id="storeDetailInstalled" class="hint" hidden></p>
+          <label class="select-all store-auto-upgrade">
+            <input id="storeAutoUpgrade" type="checkbox"> Auto-upgrade this script (offers new versions — never installs silently)
+          </label>
+          <div class="row">
+            <button id="storeInstallBtn" type="button" class="primary">Add script</button>
+            <button id="storeConfirmInstall" type="button" class="primary" hidden>Confirm install</button>
+            <button id="storeDetailClose" type="button" class="secondary">Close</button>
+          </div>
+          <p class="hint">Installing saves the script with source “store” and registers it through the same engine as a manual script. Auto-upgrade is off by default.</p>
+        </div>
+      </section>
+
+      <section id="panel-logs" class="panel">
+        <div class="card">
+          <div class="row script-list-head">
+            <h2>Logs — multi-tab runs</h2>
+            <button id="stopAllRuns" type="button" class="secondary" disabled>Stop All</button>
+          </div>
+          <p>Every tab this extension opens (Open All, Open Selected, or a single task click) gets a run entry: which installed scripts match that URL, and whether the tab finished loading. The list refreshes live while this tab is open.</p>
+          <p class="hint">What “running” means: chrome.userScripts registration is per-extension, not per-tab — a run is “running” when the matching scripts are registered and the tab was opened by this extension. It does not prove the scripts executed inside the tab, it does not control other tabs, and it does not track tabs you opened yourself. “Stop All” marks the running runs stopped and closes only the tabs this extension opened in those runs, on a best-effort basis. The last 50 runs are kept.</p>
+          <ul id="runList" class="run-list"></ul>
+          <p id="runEmpty" class="hint">No runs yet — open task sites with Open All or Open Selected to see per-tab status here.</p>
+        </div>
+      </section>
+
+      <section id="panel-settings" class="panel">
+        <div class="card">
+          <h2>Settings</h2>
+          <p>Storage keys used by HiddenGem Flow (all in <code>chrome.storage.local</code>):</p>
+          <ul>
+            <li><code>hiddengemflow.floating.pos</code> — floating window position</li>
+            <li><code>hiddengemflow.tasks.v1</code> — saved task sites (Phase 2)</li>
+            <li><code>hiddengemflow.scripts.v1</code> — installed scripts (Phase 3)</li>
+            <li><code>hiddengemflow.scripts.errors.v1</code> — per-script registration errors (Phase 3)</li>
+            <li><code>hiddengemflow.store.cache.v1</code> — last good Official Store index + when it was fetched (Phase 4)</li>
+            <li><code>hiddengemflow.bridge.dismissed.v1</code> — hostnames where the store bridge banner was dismissed (Phase 4)</li>
+            <li><code>hiddengemflow.runs.v1</code> — multi-tab run log, last 50 runs (Phase 4)</li>
+          </ul>
+          <div class="row">
+            <button id="resetPos" class="secondary">Reset floating window position</button>
+            <span id="resetResult" class="hint" role="status"></span>
+          </div>
+          <p><strong>Permissions in use:</strong> storage, tabs, scripting, activeTab, userScripts, notifications. No required host permissions — the floating window is injected only when you click the toolbar icon.</p>
+          <ul>
+            <li><strong>Scripts need two more grants, both yours to give.</strong> First, Chrome's per-extension <strong>Allow User Scripts</strong> toggle (chrome://extensions → HiddenGem Flow → Details) — no extension can flip it for you; the floating window has a button that opens that page directly. Second, <strong>site access</strong> for the sites a script runs on — an <em>optional</em> permission (<code>*://*/*</code>) granted per site (Scripts tab → Grant site access, or Site access → On all sites in the extension details). Until both are on, scripts are saved but never run.</li>
+            <li><strong>Notifications</strong> are used only by <code>GM_notification</code> from a running script. <strong>Alarms</strong> was removed in v1.0.0 — it was requested but never used.</li>
+          </ul>
+          <p><strong>Network, all user-triggered:</strong> nothing is sent to any server except (1) the best-effort favicon image (Google s2) shown next to each task site — a letter tile shows instead if it fails; (2) a script import from a URL, fetched once when you click Fetch, and the page you fetch can see the request; (3) <strong>Load store</strong>, which fetches the Official Store index (jsDelivr, then raw.githubusercontent), and opening a store script's detail view, which fetches its code once. The Smart Notification Bridge never fetches on its own — it reads the cached store copy. No analytics, no telemetry. The run log only records tabs this extension opened.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer>HiddenGem Flow v1.0.0 · MIT · Open source · <a class="gh-link" href="https://github.com/BidyutRoy2/hiddengem-flow-store" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" /></svg> GitHub — hiddengem-flow-store</a> — <span id="footCount"></span></footer>
+  </body>
+</html>
