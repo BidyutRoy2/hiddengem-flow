@@ -1,0 +1,48 @@
+{
+  "version": "1.0.2",
+  "mode": "xvfb-headed",
+  "launch": "Xvfb :99, headed Chromium 158, --load-extension",
+  "toolbarClick": "REAL XTest mouse click on the pinned gem icon (clicker2.py, python-xlib); never simulated via the service worker",
+  "results": [
+    {
+      "name": "0. Extension service worker starts",
+      "status": "PASS",
+      "ms": 0,
+      "note": "SW running: chrome-extension://ipapngeacaeambjbojpfaffneeabeeke/background.js"
+    },
+    {
+      "name": "1. chrome://extensions lists HiddenGem Flow 1.0.2, enabled, no error badge",
+      "status": "PASS",
+      "ms": 2982,
+      "note": "card shows HiddenGem Flow 1.0.2; SW running"
+    },
+    {
+      "name": "A. New-tab page + REAL toolbar click opens the standalone popup (float.html)",
+      "status": "PASS",
+      "ms": 10952,
+      "note": "NTP=chrome://new-tab-page/; popup window type=popup 360x680 at 0,0 outer=360x680; desktop shot 20b-desktop-popup.png; sections OK; pin: [clicker2] Chrome window at (0,0) size 1280x900 | [clicker2] clicked (640,500) | [clicker2] clicked (1167,69) | [clicker2] pinflow: gem in menu at capture (77,145), pin at (280,145) | [clicker2] clicked (1100,225) | [clicker2] pinflow: gem pinned in toolbar; click: [clicker2] Chrome window at (0,0) size 1280x900 | [clicker2] gem at (1130,61) n=18 | [clicker2] clicked (1130,61)"
+    },
+    {
+      "name": "B. Second toolbar click on the new tab focuses the open popup — NO duplicate",
+      "status": "PASS",
+      "ms": 4877,
+      "note": "float pages stayed at 1; popup type=popup focused=true at 920,300; move result={\"id\":1535417176,\"type\":\"popup\",\"focused\":false,\"width\":360,\"height\":680,\"left\":920,\"top\":300}"
+    },
+    {
+      "name": "C. Regression: REAL toolbar click on example.com still opens the in-page floating window and drags",
+      "status": "PASS",
+      "ms": 5364,
+      "note": "floating visible at 944,72 322x508; drag {\"left\":\"944px\",\"top\":\"72px\"} → {\"left\":\"844px\",\"top\":\"132px\"}"
+    },
+    {
+      "name": "D. From the popup, Open Dashboard opens the dashboard in a normal window; Close closes the popup",
+      "status": "PASS",
+      "ms": 2524,
+      "note": "dashboard opened in a normal window; popup closed via its Close button"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "failedRequests": [],
+  "finishedAt": "2026-11-14T21:34:22.342Z"
+}

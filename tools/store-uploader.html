@@ -1,0 +1,1045 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HiddenGem Flow — Store Uploader (private)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0A0F0D; color: #E8FFF3; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 14px; line-height: 1.5; }
+  main { max-width: 880px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h1 .gem { color: #00D084; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .8px; color: #00D084; margin: 24px 0 8px; }
+  h3 { font-size: 15px; margin: 0 0 8px; }
+  p, li { color: #C9DCD2; }
+  .sub { color: #9DB8AC; margin: 0 0 16px; }
+  .card { background: #12181A; border: 1px solid #2A3B32; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  label { display: block; margin-bottom: 10px; }
+  label span { display: block; font-weight: 600; margin-bottom: 4px; }
+  label span small { font-weight: 400; color: #8A9B91; }
+  input[type="text"], input[type="password"], textarea { width: 100%; background: #0A0F0D; border: 1px solid #2A3B32; border-radius: 8px; color: #E8FFF3; padding: 8px 10px; font-size: 13px; font-family: inherit; }
+  input[type="text"]:focus, input[type="password"]:focus, textarea:focus { border-color: #00D084; outline: none; }
+  input[readonly] { color: #9DB8AC; }
+  textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .row label { flex: 1; min-width: 140px; margin-bottom: 0; }
+  button { cursor: pointer; border: none; border-radius: 9px; font-weight: 700; padding: 9px 14px; font-size: 13px; }
+  button.primary { background: #00D084; color: #06281B; }
+  button.primary:hover { background: #19E292; }
+  button.secondary { background: transparent; border: 1px solid #2A3B32; color: #E8FFF3; }
+  button.secondary:hover { border-color: #00D084; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.viewbtn[aria-pressed="true"] { background: #00D084; color: #06281B; border-color: #00D084; }
+  .error { color: #FF9A8A; background: #2A1210; border: 1px solid #5A2320; border-radius: 9px; padding: 10px 12px; }
+  .warn { color: #FFC24B; background: #2A1F0A; border: 1px solid #5A4510; border-radius: 9px; padding: 10px 12px; }
+  .ok { color: #00D084; background: #0C2E21; border: 1px solid #14533A; border-radius: 9px; padding: 10px 12px; }
+  .error[hidden], .warn[hidden], .ok[hidden] { display: none; }
+  pre { background: #0A0F0D; border: 1px solid #2A3B32; border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+  ol { padding-left: 20px; }
+  ol li { margin-bottom: 6px; }
+  code { background: #1E2A24; padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+  .foot { color: #6E8378; font-size: 12px; margin-top: 24px; }
+  .log { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: #0A0F0D; border: 1px solid #2A3B32; border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow-y: auto; }
+  .log[hidden] { display: none; }
+  ul.script-list { list-style: none; margin: 0; padding: 0; }
+  ul.script-list li { border: 1px solid #2A3B32; border-radius: 9px; padding: 10px 12px; margin-bottom: 8px; }
+  ul.script-list button { margin-top: 6px; }
+  .muted { color: #8A9B91; }
+</style>
+</head>
+<body>
+<main>
+  <h1><span class="gem">◆</span> HiddenGem Flow — Store Uploader</h1>
+  <p class="sub">Private tool for publishing scripts to the Official Store (<code>hiddengem-flow-store</code>) — straight from this page, or by hand with the download buttons. This page is a single file: open it from your own computer, no server, no account. Your browser talks directly to <code>api.github.com</code>; nothing goes through any server of ours. Your token is stored <strong>only</strong> in this page's localStorage in your browser, and is never written into this file.</p>
+
+  <div class="card">
+    <h2>1 · GitHub connection</h2>
+    <div class="row">
+      <label><span>Owner</span>
+        <input id="cfgOwner" type="text" value="BidyutRoy2" autocomplete="off" maxlength="120" />
+      </label>
+      <label><span>Repository</span>
+        <input id="cfgRepo" type="text" value="hiddengem-flow-store" autocomplete="off" maxlength="120" />
+      </label>
+      <label><span>Branch</span>
+        <input id="cfgBranch" type="text" value="main" autocomplete="off" maxlength="120" />
+      </label>
+    </div>
+    <label style="margin-top:10px;"><span>Personal Access Token <small>(fine-grained, Contents read/write on this repo only — see the steps below)</small></span>
+      <input id="cfgToken" type="password" placeholder="github_pat_…" autocomplete="off" />
+    </label>
+    <div class="row">
+      <button type="button" class="primary" id="btnTest">Test connection</button>
+      <button type="button" class="secondary" id="btnForget">Forget token</button>
+      <span id="connStatus" class="muted">No token saved in this browser yet.</span>
+    </div>
+    <p id="connError" class="error" hidden></p>
+    <p id="connOk" class="ok" hidden></p>
+    <h3 style="margin-top:16px;">Create the token (you do this on GitHub — this page cannot create it)</h3>
+    <ol>
+      <li>GitHub → your avatar → <strong>Settings</strong> → <strong>Developer settings</strong> → <strong>Personal access tokens</strong> → <strong>Fine-grained tokens</strong> → <strong>Generate new token</strong>.</li>
+      <li>Token name: e.g. <code>HiddenGem Flow store uploader</code>. Expiration: pick one (90 days is a sane default).</li>
+      <li><strong>Repository access</strong> → <strong>Only select repositories</strong> → choose <code>hiddengem-flow-store</code> (and nothing else).</li>
+      <li><strong>Permissions</strong> → <strong>Repository permissions</strong> → <strong>Contents</strong> → <strong>Read and write</strong>. Nothing else is needed — do not add other permissions.</li>
+      <li><strong>Generate token</strong>, copy it once, paste it above, then click <strong>Test connection</strong>. A working token is saved in this browser's localStorage only; <strong>Forget token</strong> deletes it.</li>
+    </ol>
+    <p class="sub">The token is sent only to <code>api.github.com</code>, in the <code>Authorization</code> header — never in a URL, never to any other host, never written into this file. If you would rather not use a token at all, skip this section: the Download buttons in step 2 still work and you can publish by hand on github.com.</p>
+  </div>
+
+  <div class="card">
+    <div class="row" role="tablist" aria-label="Uploader views">
+      <button type="button" class="secondary viewbtn" id="btnViewNew" aria-pressed="true">New Script</button>
+      <button type="button" class="secondary viewbtn" id="btnViewLive" aria-pressed="false">Live Scripts</button>
+    </div>
+  </div>
+
+  <div class="card" id="viewNew">
+    <h2>2 · New Script — publish to the store</h2>
+    <label><span>Script name *</span>
+      <input id="fName" type="text" placeholder="e.g. Titan Quick Buy" autocomplete="off" maxlength="120" />
+    </label>
+    <div class="row">
+      <label><span>Version</span>
+        <input id="fVersion" type="text" value="1.0.0" autocomplete="off" maxlength="32" />
+      </label>
+      <label><span>Author <small>(optional)</small></span>
+        <input id="fAuthor" type="text" placeholder="e.g. HiddenGem" autocomplete="off" maxlength="120" />
+      </label>
+    </div>
+    <label><span>Description <small>(optional — one line, shown in Script Store)</small></span>
+      <input id="fDesc" type="text" placeholder="What the script does" autocomplete="off" maxlength="240" />
+    </label>
+    <label><span>@match — one per line * <small>(the sites the script runs on, e.g. https://example.com/*)</small></span>
+      <textarea id="fMatches" rows="3" spellcheck="false" placeholder="https://example.com/*"></textarea>
+    </label>
+    <label><span>Script source — paste, or choose a file <small>(.js, .user.js, .txt, or any text file)</small></span>
+      <textarea id="fCode" rows="12" spellcheck="false" placeholder="// ==UserScript==&#10;// @name        …"></textarea>
+    </label>
+    <div class="row">
+      <button type="button" class="secondary" id="btnFile">Choose a script file…</button>
+      <input id="fileInput" type="file" hidden />
+      <button type="button" class="secondary" id="btnImport">Import — read details from the code</button>
+    </div>
+    <p class="sub" style="margin:12px 0 0;">Import reads the <code>// ==UserScript==</code> block when there is one and fills the fields above. It never installs anything — it only prepares a publish.</p>
+
+    <div class="row" style="margin-top:14px;">
+      <button type="button" class="primary" id="btnPublish">Publish to the store</button>
+      <button type="button" class="secondary" id="btnDownloadJs">Download .user.js</button>
+      <button type="button" class="secondary" id="btnCopyEntry">Copy index.json entry</button>
+      <button type="button" class="secondary" id="btnDownloadIndex">Download index.json</button>
+    </div>
+    <p id="msgError" class="error" hidden></p>
+    <p id="msgWarn" class="warn" hidden></p>
+    <p id="msgOk" class="ok" hidden></p>
+    <pre class="log" id="pubLog" hidden></pre>
+    <p class="sub" style="margin:12px 0 6px;">The index entry this will produce (updates as you type):</p>
+    <pre id="entryPreview">{}</pre>
+    <label><span>Existing index.json <small>(optional, for the Download index.json button only — choose your current index.json from the repo and the new entry is added to it; otherwise a fresh index with this one script is created)</small></span>
+      <input id="indexInput" type="file" accept=".json,application/json" />
+    </label>
+    <p id="indexNote" class="sub" style="margin:8px 0 0;"></p>
+    <p class="sub" style="margin-top:12px;">Publish does, in order: read the current <code>index.json</code> (and its file id) → upload the script to <code>scripts/&lt;name&gt;.user.js</code> → upload the updated <code>index.json</code> → clear the jsDelivr cache for both files. Then check it in the extension: Script Store → <strong>Load store</strong>. If you have no token, use the Download buttons and upload the two files on github.com by hand instead — the publish button needs a token.</p>
+  </div>
+
+  <div class="card" id="viewLive" hidden>
+    <h2>3 · Live Scripts — upgrade what is already published</h2>
+    <p class="sub">Reads the store index as it is right now. With a token it reads through the GitHub API; without one it reads the public jsDelivr copy (the store is a public repo). Click a script to load its current file into the upgrade form.</p>
+    <div class="row">
+      <button type="button" class="primary" id="btnRefreshLive">Load live scripts</button>
+      <label style="flex:2; min-width:200px;"><span>Search <small>(name or description)</small></span>
+        <input id="liveSearch" type="text" placeholder="Search scripts…" autocomplete="off" />
+      </label>
+    </div>
+    <p id="liveCount" class="muted" style="margin:12px 0 8px;">Not loaded yet.</p>
+    <p id="liveError" class="error" hidden></p>
+    <ul class="script-list" id="liveList"></ul>
+
+    <div id="upgradeCard" hidden>
+      <h3>Upgrade — <span id="upName"></span></h3>
+      <label><span>Version <small>(a bump is suggested — edit it if you want a different one)</small></span>
+        <input id="upVersion" type="text" autocomplete="off" maxlength="32" />
+      </label>
+      <label><span>Author <small>(optional)</small></span>
+        <input id="upAuthor" type="text" autocomplete="off" maxlength="120" />
+      </label>
+      <label><span>Description <small>(optional)</small></span>
+        <input id="upDesc" type="text" autocomplete="off" maxlength="240" />
+      </label>
+      <label><span>@match — one per line *</span>
+        <textarea id="upMatches" rows="3" spellcheck="false"></textarea>
+      </label>
+      <label><span>Script source</span>
+        <textarea id="upCode" rows="12" spellcheck="false"></textarea>
+      </label>
+      <div class="row">
+        <button type="button" class="primary" id="btnPublishUpgrade">Publish upgrade</button>
+        <button type="button" class="secondary" id="btnCancelUpgrade">Cancel</button>
+      </div>
+      <p id="upError" class="error" hidden></p>
+      <p id="upOk" class="ok" hidden></p>
+      <pre class="log" id="upLog" hidden></pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Honest limits</h2>
+    <ul>
+      <li>Only JavaScript userscripts can run in a browser page. A file in another language can be opened here to inspect it, but it cannot run as a script — this tool does not check the language of the code, and the store only lists userscripts.</li>
+      <li>A script with no <code>@match</code> lines will run nowhere until you add some.</li>
+      <li>Publishing writes to your repo with your token — the token can only do what its Contents permission allows, on the repo you picked. The first real publish is yours: this page was tested with a deliberately wrong token (which must fail plainly and publish nothing) and with no token at all (download fallback) — no real push was made from here.</li>
+      <li>jsDelivr cache clearing is best-effort: if a purge call fails, the publish itself still succeeded — Script Store may show the old index for a few minutes until the cache refreshes.</li>
+      <li>GitHub's own API limits apply (a few thousand requests per hour for a token). This page makes a handful of requests per publish.</li>
+    </ul>
+  </div>
+
+  <p class="foot">HiddenGem Flow v1.0.0 (pre-final dev build) · Store Uploader — runs entirely on your machine. The only network requests it makes are to <code>api.github.com</code> (with your token), the public jsDelivr copy of the index (read-only, only when you load Live Scripts without a token), and <code>purge.jsdelivr.net</code> after a publish. No analytics.</p>
+</main>
+
+<script>
+"use strict";
+/* HiddenGem Flow — Store Uploader (private, standalone).
+   Your browser talks directly to api.github.com with YOUR token.
+   The token lives only in this page's localStorage in your browser —
+   it is never written into this file, never put in a URL, and never
+   sent to any host other than api.github.com.
+   Top-level functions (slugify, suggestVersionBump, purgeUrl, ...) are
+   deliberately global so the page can be tested from the console. */
+
+var LS_TOKEN_KEY = "hgf-uploader.token.v1";
+var LS_CFG_KEY = "hgf-uploader.config.v1";
+
+function $(id) { return document.getElementById(id); }
+
+function show(el, msg) {
+  if (!el) return;
+  if (msg) { el.textContent = msg; el.hidden = false; }
+  else { el.textContent = ""; el.hidden = true; }
+}
+
+function logLine(logEl, line) {
+  if (!logEl) return;
+  logEl.hidden = false;
+  logEl.textContent += line + "\n";
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+
+/* --- Pure helpers (no DOM, no network) --- */
+
+/* "Titan Quick Buy" -> "titan-quick-buy". Fallback "script". */
+function slugify(name) {
+  var s = String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return s || "script";
+}
+
+/* "1.0.0" -> "1.0.1" — increments the last number in the version. */
+function suggestVersionBump(version) {
+  var v = String(version || "").trim() || "1.0.0";
+  var m = v.match(/^(.*?)(\d+)([^0-9]*)$/);
+  if (!m) return v + ".1";
+  return m[1] + (parseInt(m[2], 10) + 1) + m[3];
+}
+
+/* jsDelivr cache-purge URL (documented format):
+   https://purge.jsdelivr.net/gh/<owner>/<repo>@<branch>/<path> */
+function purgeUrl(owner, repo, branch, path) {
+  return "https://purge.jsdelivr.net/gh/" + owner + "/" + repo + "@" + branch + "/" + path;
+}
+
+function rawCodeUrl(owner, repo, branch, filename) {
+  return "https://raw.githubusercontent.com/" + owner + "/" + repo + "/" + branch + "/scripts/" + encodeURIComponent(filename);
+}
+
+function jsdelivrIndexUrl(owner, repo, branch) {
+  return "https://cdn.jsdelivr.net/gh/" + owner + "/" + repo + "@" + branch + "/index.json";
+}
+
+function sanitizeFilename(name) {
+  return slugify(name) + ".user.js";
+}
+
+function encodeBase64(text) {
+  return btoa(unescape(encodeURIComponent(text)));
+}
+
+function decodeBase64(b64) {
+  return decodeURIComponent(escape(atob(String(b64 || "").replace(/\s/g, ""))));
+}
+
+/* --- Config + token (localStorage only) --- */
+
+function readConfig() {
+  return {
+    owner: ($("cfgOwner").value || "").trim() || "BidyutRoy2",
+    repo: ($("cfgRepo").value || "").trim() || "hiddengem-flow-store",
+    branch: ($("cfgBranch").value || "").trim() || "main",
+    token: ($("cfgToken").value || "").trim(),
+  };
+}
+
+function saveConfig(cfg) {
+  try {
+    localStorage.setItem(LS_CFG_KEY, JSON.stringify({ owner: cfg.owner, repo: cfg.repo, branch: cfg.branch }));
+    if (cfg.token) localStorage.setItem(LS_TOKEN_KEY, cfg.token);
+  } catch (e) { /* private mode — the page still works, the token just is not saved */ }
+}
+
+function loadSavedConfig() {
+  try {
+    var raw = localStorage.getItem(LS_CFG_KEY);
+    if (raw) {
+      var c = JSON.parse(raw);
+      if (c.owner) $("cfgOwner").value = c.owner;
+      if (c.repo) $("cfgRepo").value = c.repo;
+      if (c.branch) $("cfgBranch").value = c.branch;
+    }
+    var t = localStorage.getItem(LS_TOKEN_KEY);
+    if (t) {
+      $("cfgToken").value = t;
+      $("connStatus").textContent = "A token is saved in this browser (localStorage only). Click Test connection to verify it.";
+    }
+  } catch (e) { /* ignore */ }
+}
+
+$("btnForget").addEventListener("click", function () {
+  try { localStorage.removeItem(LS_TOKEN_KEY); } catch (e) {}
+  $("cfgToken").value = "";
+  show($("connError"), "");
+  show($("connOk"), "Token forgotten — removed from this browser. The page still works with the Download buttons.");
+  $("connStatus").textContent = "No token saved in this browser.";
+});
+
+/* --- GitHub API (api.github.com only, token in the header only) --- */
+
+function ghErrorMessage(status, data, fallback) {
+  var msg = data && typeof data.message === "string" ? data.message : "";
+  if (status === 401) return "GitHub said 401 — the token is wrong, expired, or has no access to this repo. Check the token and the fine-grained steps above.";
+  if (status === 403) return "GitHub said 403 — " + (msg || "forbidden") + ". The token may lack the Contents permission, or the hourly limit was hit.";
+  if (status === 404) return "GitHub said 404 — " + (msg || "not found") + ". Check the owner / repo / branch above.";
+  if (status === 409) return "GitHub said 409 — a conflict (usually a stale file id). The page retries once with a fresh id.";
+  if (status === 422) return "GitHub said 422 — " + (msg || "the request was rejected") + ".";
+  return "GitHub said " + status + " — " + (msg || fallback || "request failed") + ".";
+}
+
+/* GET one file from the repo. Returns { exists, sha, text }.
+   A 404 means "no such file" (or, for the root listing, an empty repo) —
+   that is a normal outcome here, not an error. */
+async function ghGetFile(path, cfg) {
+  var url = "https://api.github.com/repos/" + encodeURIComponent(cfg.owner) + "/" + encodeURIComponent(cfg.repo) + "/contents/" + path + "?ref=" + encodeURIComponent(cfg.branch);
+  var headers = { "Accept": "application/vnd.github+json" };
+  if (cfg.token) headers["Authorization"] = "Bearer " + cfg.token;
+  var res;
+  try {
+    res = await fetch(url, { headers: headers });
+  } catch (err) {
+    throw new Error("Could not reach api.github.com — check your connection, then try again.");
+  }
+  if (res.status === 404) return { exists: false, sha: null, text: null };
+  var data = null;
+  try { data = await res.json(); } catch (e) { data = null; }
+  if (!res.ok) throw new Error(ghErrorMessage(res.status, data, "could not read " + path));
+  if (!data || typeof data.content !== "string") return { exists: false, sha: data && data.sha ? data.sha : null, text: null };
+  return { exists: true, sha: data.sha || null, text: decodeBase64(data.content) };
+}
+
+/* PUT one file. Always pass the fresh sha for an existing file (or null
+   to create it). On a sha conflict (409/422) refetch the sha once and
+   retry the PUT once. Returns { status, sha }. */
+async function ghPutFile(path, text, message, cfg, sha, logFn) {
+  var body = { message: message, content: encodeBase64(text), branch: cfg.branch };
+  if (sha) body.sha = sha;
+  var attempt = 0;
+  while (true) {
+    attempt++;
+    var url = "https://api.github.com/repos/" + encodeURIComponent(cfg.owner) + "/" + encodeURIComponent(cfg.repo) + "/contents/" + path;
+    var headers = { "Accept": "application/vnd.github+json", "Content-Type": "application/json" };
+    if (cfg.token) headers["Authorization"] = "Bearer " + cfg.token;
+    var res;
+    try {
+      res = await fetch(url, { method: "PUT", headers: headers, body: JSON.stringify(body) });
+    } catch (err) {
+      throw new Error("Could not reach api.github.com while uploading " + path + " — check your connection, then try again.");
+    }
+    var data = null;
+    try { data = await res.json(); } catch (e) { data = null; }
+    if (res.ok) {
+      if (logFn) logFn("PUT " + path + " … " + res.status + (res.status === 201 ? " (created)" : " (updated)"));
+      return { status: res.status, sha: data && data.content && data.content.sha ? data.content.sha : null };
+    }
+    var isShaConflict = (res.status === 409 || res.status === 422) &&
+      data && typeof data.message === "string" && /sha/i.test(data.message);
+    if (isShaConflict && attempt === 1) {
+      if (logFn) logFn("PUT " + path + " … " + res.status + " (stale file id) — refetching the id once and retrying…");
+      var fresh = await ghGetFile(path, cfg);
+      if (!fresh.exists || !fresh.sha) throw new Error("The file changed on GitHub while publishing " + path + " — reload and try again.");
+      body.sha = fresh.sha;
+      continue;
+    }
+    throw new Error(ghErrorMessage(res.status, data, "could not upload " + path));
+  }
+}
+
+/* Best-effort jsDelivr cache purge (GET, no auth). Returns true on 200. */
+async function purgeFile(path, cfg, logFn) {
+  var url = purgeUrl(cfg.owner, cfg.repo, cfg.branch, path);
+  try {
+    var res = await fetch(url, { method: "GET" });
+    if (logFn) logFn("purge " + path + " … " + res.status + (res.ok ? " (cache cleared)" : " (left the cache alone — the publish still worked)"));
+    return res.ok;
+  } catch (err) {
+    if (logFn) logFn("purge " + path + " … failed (left the cache alone — the publish still worked)");
+    return false;
+  }
+}
+
+/* --- Test connection --- */
+
+$("btnTest").addEventListener("click", async function () {
+  var cfg = readConfig();
+  show($("connError"), "");
+  show($("connOk"), "");
+  if (!cfg.token) {
+    show($("connError"), "Paste a token first — Test connection needs one. (No token? Use the Download buttons in step 2 and publish by hand.)");
+    return;
+  }
+  var btn = $("btnTest");
+  btn.disabled = true;
+  btn.textContent = "Testing…";
+  try {
+    /* GET repo contents — verifies token + repo + branch in one call.
+       An empty repo answers 404 "This repository is empty.", which
+       still means the token and repo are fine. */
+    var url = "https://api.github.com/repos/" + encodeURIComponent(cfg.owner) + "/" + encodeURIComponent(cfg.repo) + "/contents?ref=" + encodeURIComponent(cfg.branch);
+    var res = await fetch(url, { headers: { "Accept": "application/vnd.github+json", "Authorization": "Bearer " + cfg.token } });
+    if (res.status === 401) throw new Error("GitHub said 401 — the token is wrong or expired. Generate a fresh one (steps above) and paste it again.");
+    if (res.status === 403) {
+      var d403 = null;
+      try { d403 = await res.json(); } catch (e) {}
+      throw new Error("GitHub said 403 — " + (d403 && d403.message ? d403.message : "forbidden") + ". The token may lack Contents access to this repo.");
+    }
+    if (res.status === 404) {
+      var d404 = null;
+      try { d404 = await res.json(); } catch (e) {}
+      if (d404 && typeof d404.message === "string" && /empty/i.test(d404.message)) {
+        saveConfig(cfg);
+        show($("connOk"), "Connected — " + cfg.owner + "/" + cfg.repo + "@" + cfg.branch + " exists and the token works. The repo is empty, so the first publish will create index.json. Token saved in this browser only.");
+        $("connStatus").textContent = "Connected: " + cfg.owner + "/" + cfg.repo + "@" + cfg.branch + " (token saved in this browser).";
+        return;
+      }
+      throw new Error("GitHub said 404 — repo or branch not found. Check the owner / repo / branch above.");
+    }
+    if (!res.ok) {
+      var d = null;
+      try { d = await res.json(); } catch (e) {}
+      throw new Error(ghErrorMessage(res.status, d, "connection test failed"));
+    }
+    saveConfig(cfg);
+    show($("connOk"), "Connected — " + cfg.owner + "/" + cfg.repo + "@" + cfg.branch + ", token works. Token saved in this browser only (Forget token removes it).");
+    $("connStatus").textContent = "Connected: " + cfg.owner + "/" + cfg.repo + "@" + cfg.branch + " (token saved in this browser).";
+  } catch (err) {
+    show($("connError"), err instanceof Error ? err.message : String(err));
+    $("connStatus").textContent = "Connection failed — nothing was published.";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Test connection";
+  }
+});
+
+/* --- Script fields, Import, entry (same rules as the extension) --- */
+
+/* Parse the // ==UserScript== ... // ==/UserScript== block (same rules
+   as the extension's parseMetadata: first @name/@version/@description/
+   @author, all @match/@include lines). Never throws. */
+function parseMeta(code) {
+  var meta = { name: null, version: null, description: null, author: null, matches: [] };
+  if (typeof code !== "string" || !code) return meta;
+  var m = code.match(/\/\/\s*==UserScript==([\s\S]*?)\/\/\s*==\/UserScript==/);
+  if (!m) return meta;
+  var lines = m[1].split("\n");
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    var kv = line.match(/^\/\/\s*@([A-Za-z]+)\s+(.+?)\s*$/);
+    if (!kv) continue;
+    var key = kv[1].toLowerCase();
+    var value = kv[2].trim();
+    if (!value) continue;
+    if (key === "name" && meta.name === null) meta.name = value;
+    else if (key === "version" && meta.version === null) meta.version = value;
+    else if (key === "description" && meta.description === null) meta.description = value;
+    else if (key === "author" && meta.author === null) meta.author = value;
+    else if (key === "match" || key === "include") meta.matches.push(value);
+  }
+  return meta;
+}
+
+function stripHeader(code) {
+  return String(code || "").replace(/\/\/\s*==UserScript==[\s\S]*?\/\/\s*==\/UserScript==\s*/, "");
+}
+
+function readFields() {
+  var matches = $("fMatches").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+  return {
+    name: $("fName").value.trim(),
+    version: $("fVersion").value.trim() || "1.0.0",
+    author: $("fAuthor").value.trim(),
+    description: $("fDesc").value.trim(),
+    matches: matches,
+    code: $("fCode").value,
+  };
+}
+
+/* Validate the fields. Missing name or code is an error; missing
+   @match is a warning (the entry is still produced, but the script
+   will run nowhere until matches are added). */
+function validate(f) {
+  show($("msgError"), "");
+  show($("msgWarn"), "");
+  show($("msgOk"), "");
+  if (!f.name) { show($("msgError"), "A script name is required — type one above, or Import a file that has an @name line."); return { ok: false, warning: false }; }
+  if (!f.code.trim()) { show($("msgError"), "There is no script source yet — paste code above, or choose a file."); return { ok: false, warning: false }; }
+  if (f.matches.length === 0) {
+    show($("msgWarn"), "No @match lines — this script will run nowhere until you add the sites it runs on. The publish still goes ahead, but Script Store will show “runs nowhere”.");
+    return { ok: true, warning: true };
+  }
+  return { ok: true, warning: false };
+}
+
+function buildHeader(f) {
+  var lines = ["// ==UserScript=="];
+  lines.push("// @name        " + f.name);
+  lines.push("// @namespace   hiddengem-flow-store");
+  lines.push("// @version     " + f.version);
+  if (f.description) lines.push("// @description " + f.description);
+  if (f.author) lines.push("// @author      " + f.author);
+  f.matches.forEach(function (m) { lines.push("// @match       " + m); });
+  lines.push("// @grant       none");
+  lines.push("// ==/UserScript==");
+  return lines.join("\n");
+}
+
+function buildUserJs(f) {
+  return buildHeader(f) + "\n\n" + stripHeader(f.code).replace(/^\s+/, "") + "\n";
+}
+
+/* The entry format is exactly what the extension's Script Store loader
+   expects (entrypoints/shared/store.ts): name, version, author,
+   description, matches, codeUrl, publishedAt, updatedAt. Nothing extra
+   is invented. The script file lives under scripts/ in the repo.
+   Dates: a NEW entry (no existing entry passed in) gets
+   publishedAt = updatedAt = today. An UPGRADE keeps exactly what the
+   listed entry has for publishedAt — even when that is EMPTY (a
+   dateless old entry stays dateless; a date is never invented) — and
+   only updatedAt becomes today. */
+function buildEntry(f, cfg, existing) {
+  var filename = sanitizeFilename(f.name);
+  var now = todayISO();
+  var publishedAt;
+  if (existing) {
+    publishedAt = typeof existing.publishedAt === "string" ? existing.publishedAt : "";
+  } else {
+    publishedAt = now;
+  }
+  return {
+    name: f.name,
+    version: f.version,
+    author: f.author,
+    description: f.description,
+    matches: f.matches,
+    codeUrl: rawCodeUrl(cfg.owner, cfg.repo, cfg.branch, filename),
+    publishedAt: publishedAt,
+    updatedAt: now,
+  };
+}
+
+function refreshPreview() {
+  var f = readFields();
+  var cfg = readConfig();
+  var entry = f.name ? buildEntry(f, cfg) : null;
+  $("entryPreview").textContent = entry ? JSON.stringify(entry, null, 2) : "{}";
+  return entry;
+}
+
+function download(filename, text, mime) {
+  var blob = new Blob([text], { type: mime });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+}
+
+function copyText(text, done) {
+  function fallback() {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    ta.remove();
+    done(ok);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { done(true); }, function () { fallback(); });
+  } else {
+    fallback();
+  }
+}
+
+/* --- Import: file or pasted code -> fill the fields from metadata --- */
+$("btnFile").addEventListener("click", function () { $("fileInput").click(); });
+
+$("fileInput").addEventListener("change", function () {
+  var file = $("fileInput").files && $("fileInput").files[0];
+  $("fileInput").value = "";
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function () {
+    $("fCode").value = String(reader.result || "");
+    importFromCode(file.name);
+  };
+  reader.onerror = function () { show($("msgError"), "Could not read that file."); };
+  reader.readAsText(file);
+});
+
+$("btnImport").addEventListener("click", function () { importFromCode(null); });
+
+function importFromCode(filename) {
+  show($("msgError"), "");
+  show($("msgWarn"), "");
+  show($("msgOk"), "");
+  var code = $("fCode").value;
+  if (!code.trim()) { show($("msgError"), "Nothing to import — paste code above, or choose a file first."); return; }
+  var meta = parseMeta(code);
+  if (meta.name) $("fName").value = meta.name;
+  if (meta.version) $("fVersion").value = meta.version;
+  if (meta.description) $("fDesc").value = meta.description;
+  if (meta.author) $("fAuthor").value = meta.author;
+  if (meta.matches.length > 0) $("fMatches").value = meta.matches.join("\n");
+  if (!meta.name && !meta.version && meta.matches.length === 0) {
+    show($("msgWarn"), "No ==UserScript== block found in " + (filename ? "“" + filename + "”" : "this code") + " — the fields were left as-is. Add a name and @match lines above; the publish adds a header so the file is a valid userscript (only if the source is JavaScript).");
+  } else {
+    show($("msgOk"), "Details read from the code" + (filename ? " (“" + filename + "”)" : "") + ". Check the fields above, then publish or download below.");
+  }
+  validate(readFields());
+  refreshPreview();
+}
+
+/* --- Publish (new script) --- */
+
+$("btnPublish").addEventListener("click", async function () {
+  var cfg = readConfig();
+  show($("msgError"), "");
+  show($("msgWarn"), "");
+  show($("msgOk"), "");
+  var logEl = $("pubLog");
+  logEl.textContent = "";
+  logEl.hidden = true;
+  if (!cfg.token) {
+    show($("msgError"), "Publish needs a token — paste one in section 1 and Test connection first. Or use the Download buttons below and upload the two files on github.com by hand.");
+    return;
+  }
+  var f = readFields();
+  var v = validate(f);
+  if (!v.ok) return;
+  var btn = $("btnPublish");
+  btn.disabled = true;
+  btn.textContent = "Publishing…";
+  var logFn = function (line) { logLine(logEl, line); };
+  try {
+    var filename = sanitizeFilename(f.name);
+    var scriptPath = "scripts/" + filename;
+    var userJs = buildUserJs(f);
+    logFn("Publishing “" + f.name + "” v" + f.version + " to " + cfg.owner + "/" + cfg.repo + "@" + cfg.branch + "…");
+    /* 1 — fresh index (and its file id). A missing index is normal:
+       the first publish creates it. */
+    logFn("GET index.json …");
+    var indexFile = await ghGetFile("index.json", cfg);
+    var index;
+    var existingEntry = null;
+    if (indexFile.exists && indexFile.text) {
+      try {
+        index = JSON.parse(indexFile.text);
+        if (!index || typeof index !== "object" || !Array.isArray(index.scripts)) throw new Error("bad shape");
+      } catch (e) {
+        throw new Error("The index.json already in the repo is not a store index (it needs a scripts list) — fix or delete it on GitHub first. Nothing was published.");
+      }
+      existingEntry = index.scripts.find(function (s) { return s && s.name === f.name; }) || null;
+      logFn("GET index.json … 200 (" + index.scripts.length + " script(s) already listed)");
+    } else {
+      index = { version: "1.0", updatedAt: todayISO(), scripts: [] };
+      logFn("GET index.json … 404 (not published yet — will create it)");
+    }
+    /* New entry: publishedAt = updatedAt = today. Re-publishing a name
+       that is already listed keeps its original publishedAt. */
+    var entry = buildEntry(f, cfg, existingEntry);
+    /* 2 — the script file (fresh file id when it already exists). */
+    logFn("GET " + scriptPath + " …");
+    var scriptFile = await ghGetFile(scriptPath, cfg);
+    logFn("GET " + scriptPath + " … " + (scriptFile.exists ? "200 (already there — will update it)" : "404 (new file)"));
+    await ghPutFile(scriptPath, userJs, "Publish script: " + f.name + " v" + f.version, cfg, scriptFile.exists ? scriptFile.sha : null, logFn);
+    /* 3 — the updated index (same name replaces the old entry). */
+    index.scripts = index.scripts.filter(function (s) { return !s || s.name !== entry.name; });
+    index.scripts.push(entry);
+    index.updatedAt = todayISO();
+    if (!index.version) index.version = "1.0";
+    await ghPutFile("index.json", JSON.stringify(index, null, 2) + "\n", "Publish store index: add " + f.name + " v" + f.version, cfg, indexFile.exists ? indexFile.sha : null, logFn);
+    /* 4 — clear the jsDelivr cache for both files (best-effort). */
+    await purgeFile("index.json", cfg, logFn);
+    await purgeFile(scriptPath, cfg, logFn);
+    saveConfig(cfg);
+    logFn("Done.");
+    show($("msgOk"), "Published “" + f.name + "” v" + f.version + " — " + scriptPath + " and index.json are now in " + cfg.owner + "/" + cfg.repo + ". Check it in the extension: Script Store → Load store.");
+  } catch (err) {
+    logFn("FAILED: " + (err instanceof Error ? err.message : String(err)));
+    show($("msgError"), err instanceof Error ? err.message : String(err));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Publish to the store";
+    refreshPreview();
+  }
+});
+
+/* --- Fallback downloads (no token needed) --- */
+
+$("btnDownloadJs").addEventListener("click", function () {
+  var f = readFields();
+  var v = validate(f);
+  if (!v.ok) return;
+  download(sanitizeFilename(f.name), buildUserJs(f), "text/javascript");
+  if (!v.warning) show($("msgOk"), "Downloaded " + sanitizeFilename(f.name) + " — upload it to scripts/ in the store repo (create the folder if needed).");
+  refreshPreview();
+});
+
+$("btnCopyEntry").addEventListener("click", function () {
+  var f = readFields();
+  var v = validate(f);
+  if (!v.ok) return;
+  var entry = buildEntry(f, readConfig());
+  copyText(JSON.stringify(entry, null, 2), function (ok) {
+    show($("msgOk"), ok ? "Index entry copied — paste it into the scripts list in index.json." : "Copy failed in this browser — select the preview below and copy it by hand.");
+  });
+  refreshPreview();
+});
+
+var existingIndex = null;
+$("indexInput").addEventListener("change", function () {
+  var file = $("indexInput").files && $("indexInput").files[0];
+  $("indexInput").value = "";
+  existingIndex = null;
+  $("indexNote").textContent = "";
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function () {
+    try {
+      var parsed = JSON.parse(String(reader.result || ""));
+      if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.scripts)) {
+        throw new Error("no scripts list");
+      }
+      existingIndex = parsed;
+      $("indexNote").textContent = "Loaded “" + file.name + "” — " + parsed.scripts.length + " script(s) inside. Download index.json will add this script to that list (same name replaces the old entry).";
+    } catch (e) {
+      show($("msgError"), "That file is not a store index (it needs a scripts list). A fresh index will be created instead.");
+    }
+  };
+  reader.onerror = function () { show($("msgError"), "Could not read that file."); };
+  reader.readAsText(file);
+});
+
+$("btnDownloadIndex").addEventListener("click", function () {
+  var f = readFields();
+  var v = validate(f);
+  if (!v.ok) return;
+  var existingEntry = null;
+  if (existingIndex) {
+    existingEntry = existingIndex.scripts.find(function (s) { return s && s.name === f.name; }) || null;
+  }
+  var entry = buildEntry(f, readConfig(), existingEntry);
+  var index;
+  if (existingIndex) {
+    var scripts = existingIndex.scripts.filter(function (s) { return !s || s.name !== entry.name; });
+    scripts.push(entry);
+    index = { version: existingIndex.version || "1.0", updatedAt: todayISO(), scripts: scripts };
+  } else {
+    index = { version: "1.0", updatedAt: todayISO(), scripts: [entry] };
+  }
+  download("index.json", JSON.stringify(index, null, 2) + "\n", "application/json");
+  if (!v.warning) show($("msgOk"), "Downloaded index.json with " + index.scripts.length + " script(s) — upload it to the store repo root.");
+  refreshPreview();
+});
+
+/* --- Live Scripts view --- */
+
+var liveEntries = [];
+var liveLoadedAt = null;
+
+function renderLiveList() {
+  var q = ($("liveSearch").value || "").trim().toLowerCase();
+  var list = $("liveList");
+  list.innerHTML = "";
+  var shown = liveEntries.filter(function (e) {
+    if (!q) return true;
+    return ((e.name || "") + " " + (e.description || "")).toLowerCase().indexOf(q) !== -1;
+  });
+  $("liveCount").textContent = liveEntries.length + " script(s) in the store" +
+    (liveLoadedAt ? " · loaded " + liveLoadedAt : "") +
+    (q ? " · showing " + shown.length + " matching “" + q + "”" : "");
+  if (shown.length === 0) {
+    var li = document.createElement("li");
+    li.textContent = liveEntries.length === 0 ? "The store is empty — nothing is published yet." : "No scripts match that search.";
+    li.className = "muted";
+    list.appendChild(li);
+    return;
+  }
+  shown.forEach(function (e) {
+    var li = document.createElement("li");
+    var title = document.createElement("strong");
+    title.textContent = e.name + " — v" + e.version;
+    var meta = document.createElement("div");
+    meta.className = "muted";
+    var bits = [];
+    if (e.author) bits.push("by " + e.author);
+    if (e.matches && e.matches.length) bits.push("runs on " + e.matches.join(", "));
+    else bits.push("no @match info");
+    if (e.updatedAt) bits.push("updated " + e.updatedAt);
+    meta.textContent = bits.join(" · ");
+    var desc = document.createElement("div");
+    desc.textContent = e.description || "No description in the store entry.";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "secondary";
+    btn.textContent = "Upgrade this script…";
+    btn.addEventListener("click", function () { void openUpgrade(e); });
+    li.append(title, meta, desc, btn);
+    list.appendChild(li);
+  });
+}
+
+$("btnRefreshLive").addEventListener("click", async function () {
+  var cfg = readConfig();
+  show($("liveError"), "");
+  var btn = $("btnRefreshLive");
+  btn.disabled = true;
+  btn.textContent = "Loading…";
+  try {
+    var raw = null;
+    if (cfg.token) {
+      var file = await ghGetFile("index.json", cfg);
+      if (!file.exists || !file.text) {
+        liveEntries = [];
+        liveLoadedAt = new Date().toLocaleString();
+        renderLiveList();
+        show($("liveError"), "");
+        $("liveCount").textContent = "0 script(s) in the store — index.json is not published yet. Publish your first script from the New Script view.";
+        return;
+      }
+      raw = file.text;
+    } else {
+      /* No token: read the public copy (the store is a public repo). */
+      var res = await fetch(jsdelivrIndexUrl(cfg.owner, cfg.repo, cfg.branch));
+      if (res.status === 404) {
+        liveEntries = [];
+        liveLoadedAt = new Date().toLocaleString();
+        renderLiveList();
+        $("liveCount").textContent = "0 script(s) in the store — index.json is not published yet. Publish your first script from the New Script view (a token is needed to publish).";
+        return;
+      }
+      if (!res.ok) throw new Error("The public store copy answered " + res.status + ". Add a token above to read it through the GitHub API instead.");
+      raw = await res.text();
+    }
+    var parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      throw new Error("The store index is not valid JSON.");
+    }
+    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.scripts)) {
+      throw new Error("The store index has no scripts list.");
+    }
+    liveEntries = parsed.scripts.filter(function (s) {
+      return s && typeof s.name === "string" && s.name && typeof s.version === "string" && s.version;
+    });
+    liveLoadedAt = new Date().toLocaleString();
+    renderLiveList();
+  } catch (err) {
+    show($("liveError"), err instanceof Error ? err.message : String(err));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Load live scripts";
+  }
+});
+
+$("liveSearch").addEventListener("input", renderLiveList);
+
+/* --- Upgrade flow --- */
+
+var upgradeTarget = null; /* { entry, scriptPath, filename } */
+
+function filenameFromCodeUrl(codeUrl, name) {
+  if (typeof codeUrl === "string") {
+    var m = codeUrl.match(/\/scripts\/([^/?#]+)$/);
+    if (m) return decodeURIComponent(m[1]);
+    var m2 = codeUrl.match(/\/([^/?#]+\.user\.js)$/);
+    if (m2) return decodeURIComponent(m2[1]);
+  }
+  return sanitizeFilename(name);
+}
+
+async function openUpgrade(entry) {
+  show($("upError"), "");
+  show($("upOk"), "");
+  var logEl = $("upLog");
+  logEl.textContent = "";
+  logEl.hidden = true;
+  var cfg = readConfig();
+  var filename = filenameFromCodeUrl(entry.codeUrl, entry.name);
+  var scriptPath = "scripts/" + filename;
+  upgradeTarget = { entry: entry, scriptPath: scriptPath, filename: filename };
+  $("upName").textContent = entry.name + " (v" + entry.version + ")";
+  $("upVersion").value = suggestVersionBump(entry.version);
+  $("upAuthor").value = entry.author || "";
+  $("upDesc").value = entry.description || "";
+  $("upMatches").value = (entry.matches || []).join("\n");
+  $("upCode").value = "";
+  $("upgradeCard").hidden = false;
+  $("upgradeCard").scrollIntoView({ behavior: "smooth", block: "start" });
+  var logFn = function (line) { logLine(logEl, line); };
+  try {
+    var code = null;
+    if (entry.code && entry.code.trim()) {
+      code = entry.code;
+      logFn("Loaded the script from the index entry itself (inline code).");
+    } else if (cfg.token) {
+      logFn("GET " + scriptPath + " …");
+      var file = await ghGetFile(scriptPath, cfg);
+      if (!file.exists || !file.text) throw new Error("The script file " + scriptPath + " is not in the repo any more — the index points at a missing file.");
+      code = file.text;
+      logFn("GET " + scriptPath + " … 200");
+    } else {
+      /* No token: fetch the public copy of the file. */
+      var url = rawCodeUrl(cfg.owner, cfg.repo, cfg.branch, filename);
+      logFn("GET " + filename + " (public copy) …");
+      var res = await fetch(url);
+      if (!res.ok) throw new Error("Could not fetch the public copy of the script (" + res.status + "). Add a token above to read it through the GitHub API.");
+      code = await res.text();
+      logFn("GET " + filename + " (public copy) … 200");
+    }
+    $("upCode").value = code;
+  } catch (err) {
+    show($("upError"), err instanceof Error ? err.message : String(err));
+  }
+}
+
+$("btnCancelUpgrade").addEventListener("click", function () {
+  upgradeTarget = null;
+  $("upgradeCard").hidden = true;
+  show($("upError"), "");
+  show($("upOk"), "");
+});
+
+$("btnPublishUpgrade").addEventListener("click", async function () {
+  if (!upgradeTarget) return;
+  var cfg = readConfig();
+  show($("upError"), "");
+  show($("upOk"), "");
+  var logEl = $("upLog");
+  logEl.textContent = "";
+  logEl.hidden = true;
+  var logFn = function (line) { logLine(logEl, line); };
+  if (!cfg.token) {
+    show($("upError"), "Publishing an upgrade needs a token — paste one in section 1 and Test connection first.");
+    return;
+  }
+  var version = ($("upVersion").value || "").trim() || upgradeTarget.entry.version;
+  var f = {
+    name: upgradeTarget.entry.name,
+    version: version,
+    author: ($("upAuthor").value || "").trim(),
+    description: ($("upDesc").value || "").trim(),
+    matches: $("upMatches").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean),
+    code: $("upCode").value,
+  };
+  if (!f.code.trim()) { show($("upError"), "There is no script source — the upgrade has nothing to publish."); return; }
+  if (f.matches.length === 0) {
+    show($("upError"), "No @match lines — this script would run nowhere. Add the sites it runs on first.");
+    return;
+  }
+  var btn = $("btnPublishUpgrade");
+  btn.disabled = true;
+  btn.textContent = "Publishing…";
+  try {
+    /* Upgrade: publishedAt stays as the listed entry has it (empty when
+       the old entry has no dates); only updatedAt becomes today. */
+    var entry = buildEntry(f, cfg, upgradeTarget.entry);
+    var userJs = buildUserJs(f);
+    logFn("Publishing upgrade “" + f.name + "” v" + upgradeTarget.entry.version + " → v" + version + "…");
+    /* Fresh file id, then the script file. */
+    logFn("GET " + upgradeTarget.scriptPath + " …");
+    var scriptFile = await ghGetFile(upgradeTarget.scriptPath, cfg);
+    logFn("GET " + upgradeTarget.scriptPath + " … " + (scriptFile.exists ? "200" : "404 (the file is gone — will create it)"));
+    await ghPutFile(upgradeTarget.scriptPath, userJs, "Upgrade script: " + f.name + " v" + version, cfg, scriptFile.exists ? scriptFile.sha : null, logFn);
+    /* Fresh index id, then the updated index (same name replaces the entry). */
+    logFn("GET index.json …");
+    var indexFile = await ghGetFile("index.json", cfg);
+    if (!indexFile.exists || !indexFile.text) throw new Error("index.json disappeared from the repo while publishing — reload the Live Scripts list and try again.");
+    var index;
+    try {
+      index = JSON.parse(indexFile.text);
+      if (!index || typeof index !== "object" || !Array.isArray(index.scripts)) throw new Error("bad shape");
+    } catch (e) {
+      throw new Error("The index.json in the repo is no longer a store index — fix it on GitHub first. The script file was already uploaded.");
+    }
+    index.scripts = index.scripts.filter(function (s) { return !s || s.name !== entry.name; });
+    index.scripts.push(entry);
+    index.updatedAt = todayISO();
+    await ghPutFile("index.json", JSON.stringify(index, null, 2) + "\n", "Upgrade store index: " + f.name + " v" + version, cfg, indexFile.sha, logFn);
+    await purgeFile("index.json", cfg, logFn);
+    await purgeFile(upgradeTarget.scriptPath, cfg, logFn);
+    saveConfig(cfg);
+    logFn("Done.");
+    show($("upOk"), "Published the upgrade — “" + f.name + "” is now v" + version + ". Check it in the extension: Script Store → Load store.");
+    /* Refresh the list so the new version shows right away. */
+    liveEntries = liveEntries.filter(function (s) { return !s || s.name !== entry.name; });
+    liveEntries.push(entry);
+    renderLiveList();
+  } catch (err) {
+    logFn("FAILED: " + (err instanceof Error ? err.message : String(err)));
+    show($("upError"), err instanceof Error ? err.message : String(err));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Publish upgrade";
+  }
+});
+
+/* --- View switch --- */
+
+function showView(which) {
+  var isNew = which === "new";
+  $("viewNew").hidden = !isNew;
+  $("viewLive").hidden = isNew;
+  $("btnViewNew").setAttribute("aria-pressed", isNew ? "true" : "false");
+  $("btnViewLive").setAttribute("aria-pressed", !isNew ? "true" : "false");
+}
+
+$("btnViewNew").addEventListener("click", function () { showView("new"); });
+$("btnViewLive").addEventListener("click", function () { showView("live"); });
+
+/* Live preview as the fields change (New Script view). */
+["fName", "fVersion", "fAuthor", "fDesc", "fMatches", "fCode", "cfgOwner", "cfgRepo", "cfgBranch"].forEach(function (id) {
+  var elx = $(id);
+  if (elx) elx.addEventListener("input", refreshPreview);
+});
+
+loadSavedConfig();
+refreshPreview();
+showView("new");
+</script>
+</body>
+</html>

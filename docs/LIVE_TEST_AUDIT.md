@@ -1,0 +1,404 @@
+# HiddenGem Flow — Live Test Audit (real Chromium)
+
+Version tested: **1.0.1** · Date: **2026-11-14** (runs on 2026-11-14 ~21:11–21:12 Dhaka, finished 21:12:48Z)
+Final run: **29 PASS / 0 FAIL** (harness exit 0) — `live-test4.cjs`, fresh profile `profile-full4`
+Screenshots + video: `docs/live-test/` (`preview.mp4`, 4.92 MB, 12fps desktop recording)
+
+## How it was tested (honest method)
+
+Real **Google Chrome for Testing 158.0.8127.18** (`/home/hatch/.cache/ms-playwright/chromium-1254/chrome-linux64/chrome`),
+headed under **Xvfb :99** (1400×1000), driven by Playwright + **python-xlib XTest real mouse clicks**
+(`clicker2.py`). The headless-shell binary does not support extensions, so it was not used;
+headless-new was not used either — headed Xvfb is the mode that worked.
+
+- **Extension id** (stable, path-derived): `ipapngeacaeambjbojpfaffneeabeeke`.
+- **Toolbar click is REAL:** the gem icon is pinned via the Extensions menu (real clicks on the puzzle icon
+  and the pin), then the toolbar gem is clicked with a real X11 mouse click — `chrome.action.onClicked`
+  → `activeTab` — not a service-worker simulation. (F6+Tab keyboard navigation to the toolbar does not
+  work via CDP; the XTest route is what proved it.)
+- **Networking:** VM egress goes through a proxy (`http://hatch-egress-proxy:3128`); Chromium does not
+  read env proxies, so a local CONNECT relay (`127.0.0.1:18080`, adds `Proxy-Authorization` from env,
+  never logs credentials) + `--ignore-certificate-errors` (MITM cert — test-environment quirk, not an
+  extension issue) was used. Relay health was re-checked before each run (200).
+- **Allow User Scripts** was toggled with a real click on the `chrome://extensions` Details switch.
+- **Grant site access** was accepted with a real click on Chrome's own permission prompt: the Allow pill
+  is located by pixels (solid light-blue run detection, `clicker2.py` `allow`) and clicked at (813,270)
+  on the final run — a real Chrome UI click, not a Playwright action.
+- **Stop All** was tested against a local slow server (`127.0.0.1:19090/slow`, 25s delay) with
+  authoritative `chrome.tabs.query` counts (Playwright `pages()` undercounts by design).
+- **Playwright per-page video recording saved 0 files** (all runs); the deliverable preview video is the
+  ffmpeg x11grab recording of the whole Xvfb desktop (`preview.mp4`), toolbar included.
+
+## Per-test results (final run)
+
+| # | Test | Result | Evidence (what was clicked / observed) | Screenshot |
+|---|---|---|---|---|
+| 0 | Service worker starts | PASS | SW running: `chrome-extension://ipapngeacaeambjbojpfaffneeabeeke/background.js` | — |
+| 1 | chrome://extensions lists 1.0.1, no error badge | PASS | Card shows HiddenGem Flow 1.0.1; SW running | `01-extensions-page.png` |
+| 2a | Dashboard loads, 6 tabs, honest 0 counts | PASS | Tabs: Overview \| Daily Tasks \| Scripts \| Find Script \| Logs \| Settings; counts 0/0 | `02-dashboard-overview.png` |
+| 2b | All 6 tabs open, no new console/page errors | PASS | Each panel active; 0 new errors during each tab | `03-dashboard-tab-{tasks,scripts,store,logs,settings}.png` |
+| 2c | GitHub header button opens the live store repo | PASS | Opened `https://github.com/BidyutRoy2/hiddengem-flow-store`; page shows the repo (live GitHub) | `04-github-store-page.png` |
+| 3 | Allow User Scripts OFF at first | PASS | `typeof chrome.userScripts === "undefined"` in SW — toggle OFF (namespace gated by Chrome) | — |
+| 4a | REAL toolbar click opens the floating window on example.com | PASS | example.com loaded; real toolbar click injected it; visible at x=944 y=72, 322×508 | `05-floating-window.png` |
+| 4b | Drag header ~100px, position changes | PASS | before `{"left":"944px","top":"72px"}` → after `{"left":"844px","top":"132px"}` | `06-floating-after-drag.png` |
+| 4c | Dragged position persists after reload + re-click | PASS | stored `{"x":844,"y":132}`; restored `{"left":"844px","top":"132px"}` after reload + real re-click | `07-floating-after-reload.png` |
+| 4d | Minimize, close, re-toggle (real click) | PASS | minimize hid body; close removed host; real re-click recreated it | `08-floating-minimized.png` |
+| 4e | Floating "Add current site" prefills + saves; footer GitHub link | PASS | prefilled name="Example Domain" url=`https://example.com/`; saved 1 task; GitHub href OK | `09-floating-add-current-site.png` |
+| 5a | Dashboard Tasks: task saved from floating appears | PASS | 1 row, shows example.com | `12-dashboard-after-delete.png` (list after delete), `10-dashboard-task-open.png` |
+| 5b | Click the task row opens a new tab | PASS | New example.com tab opened (1 new page) | `10-dashboard-task-open.png` |
+| 5c | Open All opens the site; Logs records the run | PASS | Open All opened 1 tab; Logs shows 2 runs | `11-dashboard-logs.png` |
+| 5d | Delete the task via dashboard UI | PASS | deleted "Delete Example Domain"; list empty; storage empty | `12-dashboard-after-delete.png` |
+| 6a | Scripts tab: engine banner shows exact steps while toggle OFF | PASS | Banner visible with exact steps (Allow User Scripts / chrome://extensions / Details) | `13-dashboard-scripts-tab.png` |
+| 6b | Enable Allow User Scripts via real Details toggle | PASS | Switch false → true; `typeof chrome.userScripts` now `"object"`; `getScripts()` OK (0 registered) | `14-toggle-allow-user-scripts.png` |
+| 6c | Create script, scan, Confirm install | PASS | Scan shown; installed; registered ids=`["script-67e353b4-…-b29a"]`; NO registration error in storage (world fix verified) | `14-script-scan.png`, `15-script-installed.png` |
+| 6c2 | BEFORE grant: row warns + Grant button; script does NOT run on a fresh tab | PASS | Row warns "not running yet"; Grant button present; `permissions.contains()==false`; fresh tab NOT run (title "Example Domain"); floating note: "1 installed · 1 match this page · 1 needs site access — Dashboard → Scripts → Grant site access" | `15b-script-needs-access.png`, `15c-floating-needs-access.png` |
+| 6c3 | Grant flow: Grant button → Chrome prompt → real Allow click → access granted | PASS | Allow pill rect x 781..846 y 252..289, clicked (813,270); `permissions.contains(https://example.com/*) === true` | `15d-after-grant.png`, `15e-script-access-granted.png` |
+| 6c4 | AFTER grant: Grant button + warning disappear | PASS | Row clean: no warning, no Grant button | `15d-after-grant.png` |
+| 6d | Script actually runs on example.com | PASS | Title became `HGF-TEST-RAN`; `#hgf-live-test-banner` div present — script ran for real | `16-script-ran-on-example.png` |
+| 6e | AFTER grant: floating lists the script, no site-access warning | PASS | Active Scripts lists "HGF Live Test Banner"; note: "1 installed · 1 match this page" | `16b-floating-after-grant.png` |
+| 7 | Find Script → Load store: honest not-published message, zero fake scripts | PASS | Message shown; 0 store items; error text: "Could not load the store: The store answered 404." | `17-store-load-result.png` |
+| 8 | Stop All with two slow tabs | PASS | Open All opened 2 slow tabs (chrome.tabs.query 9 → 11); Stop All clicked; runs show "stopped"; tabs 11 → 9 | `18-logs-before-stop-all.png`, `19-logs-after-stop-all.png` |
+
+Test script used in 6c–6e: **HGF Live Test Banner v1.0**, `@match https://example.com/*` — sets
+`document.title = 'HGF-TEST-RAN'` and appends a green `#hgf-live-test-banner` div.
+
+## Console / service-worker error log (final run)
+
+- **Page errors: 0. Failed network requests: 0.**
+- **Console errors: 12** — all the same text, all environmental noise (NOT extension bugs):
+  `Failed to load resource: the server responded with a status of 404 ()` / `... 404 (Not Found)`.
+  By page: `about:blank` ×6, `dashboard` ×4, `example.com` ×2. These are favicon requests
+  (Chrome requesting `favicon.ico` on about:blank/example.com pages and the dashboard's own icon fetch
+  racing the page) — no extension code path, no user-visible effect. The dashboard favicon 404 from
+  earlier runs (bug #2 below) is fixed; the remaining 404s are browser favicon noise on pages the
+  extension does not control.
+- **Known environmental noise (not extension bugs):** GitHub `collector.github.com/github/collect`
+  `ERR_TIMED_OUT` (GitHub analytics beacon failing through the proxy).
+
+## Errors found — and fixes (all in v1.0.1)
+
+### Bug #1 — `world: "ISOLATED"` broke ALL script execution (HIGH)
+`entrypoints/shared/engine.ts` passed `world: "ISOLATED"` to `chrome.userScripts.register()`, which only
+accepts `MAIN` or `USER_SCRIPT` (`ISOLATED` belongs to `chrome.scripting`). Live error: *"Value must be
+one of MAIN, USER_SCRIPT"* (shown next to the script in the dashboard + persisted in
+`hiddengemflow.scripts.errors.v1`). The jsdom smoke tests could not catch it (they mock the API).
+**Fix:** `world: "USER_SCRIPT"` + corrected comment. Verified live in 6c (registered, no error).
+
+### Bug #2 — dashboard favicon 404 (cosmetic)
+Dashboard had no favicon link → Chrome requested `chrome-extension://<id>/favicon.ico` → 404 on every
+load. **Fix:** `<link rel="icon" href="/icons/icon32.png" />` in `entrypoints/dashboard/index.html`.
+(Side effect: the dashboard tab now shows the gem favicon — the clicker's gem detector had to be
+scoped to the toolbar row only, y 40–90.)
+
+### Bug #3 — scripts registered but never ran: missing host access (HIGH, architectural)
+A script registered cleanly (`getScripts()` listed it, no error) yet never executed on a fresh tab.
+Proof by experiment: fresh example.com tab, no click → title "Example Domain", banner 0; after one real
+toolbar click on that tab (activeTab grant) + reload → title "HGF-TEST-RAN", banner 1. Chrome docs
+confirm: user scripts run only on sites the extension can access — `"userScripts"` permission AND
+`"host_permissions"` are both needed.
+**Fix:** `optional_host_permissions: ["*://*/*"]` in `wxt.config.ts` (optional, per-site — same
+trust-first pattern as ScriptSentry; no required host permissions added); `scriptHasHostAccess()` +
+`requestHostAccess()` in `entrypoints/shared/engine.ts`; background `MSG_SCRIPTS_STATUS` returns
+per-script `hostAccess`; dashboard shows a warning + **"Grant site access"** button on enabled scripts
+without access (Chrome's own prompt, needs the click gesture); floating window note says which scripts
+need site access. Verified live in 6c2/6c3/6c4/6d (real Allow click → `contains()===true` → script runs).
+
+### Bug #4 — dashboard showed stale tasks/scripts (found during the re-test)
+Tasks and scripts were loaded **once at startup**, so a task saved from the floating window never
+appeared in the dashboard's Tasks tab (live test: floating saved 1 task, Tasks tab still showed 0 rows)
+until the page was reloaded; same for a script toggled from the floating window.
+**Fix** (`entrypoints/dashboard/main.ts`): `selectTab` now re-reads storage when switching to the Tasks
+or Scripts tab (same pattern Logs/Scripts already used), plus `chrome.storage.onChanged` listeners for
+the tasks key and the scripts/errors keys so the lists live-update while the page is open.
+Verified live in 5a–5d.
+
+### Bug #5 — floating window's Tasks / Active Scripts sections never refreshed (found during the re-test)
+Both sections rendered once at injection and never refreshed, so a script installed in the dashboard
+(or site access granted for it) never appeared in an already-open floating window — the live test
+injected the floating, installed a script, granted site access, and the floating still listed no scripts.
+**Fix** (`entrypoints/floating.ts`): each section registers its re-run (`floatingRefreshers`); refreshers
+fire when the window is shown again after being hidden and live on `chrome.storage.onChanged` for the
+tasks/scripts/errors keys (listener registered once per tab). The bridge banner is unchanged (one-shot
+by design, dismissal persisted).
+**Second-order miss caught by the same test:** the first version of this fix still failed 6c2/6e — the
+scripts section returned early while "Allow User Scripts" was off, so its refresher was never
+registered and the section stayed frozen after the toggle was turned on. The early return is removed;
+`refresh()` now re-checks availability on every run (banner + list heal together).
+Verified live in 6c2 (floating note live-updated to "…1 needs site access") and 6e (list + clean note).
+
+## Harness bugs fixed along the way (mine, not the extension)
+
+- `clicker2.py`: pixel loop shadowed the geometry variable `g` (`AttributeError`); fixed by renaming.
+- Gem detector must scan the toolbar row only (y 40–90) — the dashboard tab's gem favicon (added by
+  the favicon fix) sits at y≈18 and caused a misclick that switched tabs.
+- `allow` step: the "widest x-cluster" logic merged the whole permission bubble into one 400px cluster
+  and clicked its middle (run 4). Replaced with solid-run detection (runs ≥ 40px of light blue,
+  merged across rows with a 14-row gap so the dark "Allow" text does not split the pill into two
+  too-short bands), with a fallback to the tallest band rect. Verified: rect x 781..846 y 252..289 →
+  clicked (813,270) → access granted. The `allow` step now also saves `allow-shot.png` for debugging.
+- 6c2 pre-grant check must use a **fresh tab**: reloading the toolbar-clicked tab silently re-uses its
+  activeTab grant (reload keeps the grant), so the script ran and the check wrongly failed.
+- Test 8's row/tab counts are baseline-relative (leftover tasks must not fail it on their own); the Logs
+  check looks for the slow URLs, not the task names (log entries show hostname + URL).
+
+## Open limitations (not hidden)
+
+1. **Store repo is empty** (`BidyutRoy2/hiddengem-flow-store`, created 2026-11-14, size 0). The live
+   fetch path is unverified; the failure path (jsDelivr → raw → cache → honest "not published yet"
+   message) is verified live (test 7). Only the owner can publish `index.json` — not fixable from code.
+2. **Scripts need TWO user grants, not one.** (a) **Allow User Scripts** (`chrome://extensions` →
+   HiddenGem Flow → Details → ON, then reload) — the extension cannot flip it; the banner explains it.
+   (b) **Site access** for the script's @match sites — Chrome only runs a userscript where the extension
+   has host access; granted per site from the Scripts tab ("Grant site access", Chrome's own prompt) or
+   wholesale from Details → Site access → "On all sites". Without (b) a registered script is inert,
+   and the UI says so.
+3. **Not live click-tested in real Chrome on the owner's machine** — the owner's Load Unpacked test
+   (README steps 5–11) is still the real end-to-end check on their own machine. Firefox is not built
+   (Chrome first by decision).
+4. **Real toolbar click was done via XTest mouse click** (not a human hand); the Grant prompt Allow click
+   was a pixel-located XTest click. Playwright per-page videos saved 0 files — the preview video is the
+   ffmpeg desktop recording.
+5. **Test harness** lives in `/tmp/hgf-live-test/` (not in the repo): `live-test4.cjs`, `run-full4.sh`,
+   `clicker2.py`, `proxy-relay.cjs`, `slow-server.cjs`, `results4.json`, `run4.log`. The final run's
+   profile is `profile-full4` (script installed + site access granted for example.com, toggle ON).
+
+## Run history
+
+| Run | Version | Result | Notes |
+|---|---|---|---|
+| 1 (`live-test.cjs`) | 1.0.0 | — (not counted) | Found bug #1 (world ISOLATED) + bug #2 (favicon); 4a–5d failed on SW-evaluated injection (harness limitation, no user gesture) |
+| 2 (`live-test2.cjs`) | 1.0.1 | 13 PASS / 8 FAIL | World fix verified; 4a–5d failed on the clicker `g`-shadowing bug; found bug #3 (host access) |
+| 3 (`live-test3.cjs`) | 1.0.1 | — (not counted) | Real toolbar click proven; host-access grant verified (probe13); 5a failed on the gem-favicon misclick cascade |
+| 4 (`live-test3.cjs`) | 1.0.1 | 19 PASS / 10 FAIL | Found bug #4 (dashboard staleness); `allow` click missed (400px cluster); 6c2 used a granted tab |
+| 5 (`live-test4.cjs`) | 1.0.1 | — (not counted) | Dashboard fix verified (5a–5d PASS); `allow` detector still missed (text split the pill); `ctx` typo; test-8 log check wrong |
+| 6 (`live-test4.cjs`) | 1.0.1 | 27 PASS / 2 FAIL | `allow` fix verified (6c3/6c4/6d PASS); found bug #5 (floating staleness); `EXAMPLE` typo |
+| 7 (`live-test4.cjs`) | 1.0.1 | 27 PASS / 2 FAIL | Bug #5's first fix missed the early-return case (6c2/6e failed on stale note/list) |
+| **8 (`live-test4.cjs`)** | **1.0.1** | **29 PASS / 0 FAIL** | **Final. All tests pass, including the live floating refresh (6c2/6e).** |
+| 9 (`live-test5.cjs`) | 1.0.2 | 4 PASS / 2 FAIL | Harness bugs only (innerText on a Shadow-DOM page; innerText vs CSS-uppercased headings); popup UI itself verified correct in the screenshots |
+| 10 (`live-test5.cjs`) | 1.0.2 | 5 PASS / 1 FAIL | Test 1 fixed; test A failed only on popup size (1288×1031) — real bug, see addendum |
+| **11 (`live-test5.cjs`)** | **1.0.2** | **6 PASS / 0 FAIL** | **Final. Popup 360×680, no duplicate, regression clean.** |
+
+---
+
+# Addendum — v1.0.2: standalone floating window (no website open)
+
+**Date:** 2026-11-15 (runs 9–11, finished 2026-11-14T21:34:22Z = 2026-11-15 03:34 Dhaka).
+**User report:** toolbar click did nothing on a Brave new tab page (screenshot, no site open).
+**Root cause (already verified, not re-diagnosed):** the floating window is a content script injected into
+the active tab; Chrome forbids injection on `chrome://`, `brave://`, Web Store, `about:blank` and new-tab
+pages. No `chrome_url_overrides` — the user's new tab page is never replaced.
+
+## What changed (v1.0.2)
+
+- **New entrypoint `entrypoints/float/`** (`index.html`, `main.ts`, `style.css`), built as `float.html`:
+  same floating UI as the in-page window (header + gem logo + "HiddenGem Flow", Daily Tasks with Open All,
+  Active Scripts, Open Dashboard, GitHub link to `https://github.com/BidyutRoy2/hiddengem-flow-store`,
+  Close button closing the window). Reuses `shared/tasks.ts` / `shared/scripts.ts` — no duplicated storage
+  logic. Differences: no Shadow DOM (it is its own page), no internal drag (the OS window drags),
+  "Add current site" disabled with the hint "Open a website to add it". Scripts list shows all enabled
+  installed scripts (no page URL exists to match against), with an honest note.
+- **`entrypoints/background.ts`:** `handleToolbarClick` routes by URL scheme — `http(s)://` keeps the exact
+  old behaviour (sendMessage toggle, fallback `executeScript` inject); anything else opens the popup via
+  `chrome.windows.create({ url: float.html, type: "popup", width: 360, height: 680, focused: true })`.
+  `openFloatPopup` tracks the window id (cleared on `chrome.windows.onRemoved`) and focuses an already-open
+  popup instead of duplicating it. Injection failure on an http(s) page falls back to the popup.
+  `openDashboard` now targets a normal browser window so the dashboard never opens inside the popup.
+- **Permissions unchanged** — still exactly `storage, tabs, scripting, activeTab, userScripts, notifications`
+  + optional `*://*/*`; `chrome_url_overrides: None` (verified in the built manifest).
+
+## Bug found live — `chrome.windows.create` bounds ignored under bare Xvfb (real, fixed in code)
+
+Run 10's test A failed only on size: the popup was a real `type: "popup"` window, but 1288×1031 at 0,0
+instead of 360×680. A standalone probe (`/tmp/hgf-live-test/probe-windows.cjs`, no extension code in the
+call) proved the cause is the environment, not the extension: a plain
+`chrome.windows.create({ url: "about:blank", type: "popup", width: 400, height: 500, left: 100, top: 80 })`
+still opened at **1280×900, 0,0** (the main window's bounds) and stayed there 1.2 s later — while a
+follow-up `chrome.windows.update(id, { left: 920, top: 300, width: 360, height: 680 })` was honoured
+immediately. In this environment (Chrome for Testing 158 under Xvfb, no window manager) `create()` bounds
+are ignored and `update()` bounds are honoured. Fix (`background.ts`, `enforceFloatPopupSize`): after
+creation the background calls `windows.update({ width: 360, height: 680 })`, verifies with
+`windows.get`, and retries once after 300 ms. Position is deliberately left to Chrome/OS. On a normal
+desktop both calls agree and the update is a no-op. Run 11 then passed 6/6 with the popup at exactly
+360×680 (`outerWidth`/`outerHeight` 360×680).
+
+## Per-test results (final run 11, `live-test5.cjs`)
+
+| Test | Result | Evidence |
+|---|---|---|
+| 0. Service worker starts | PASS | SW running: `chrome-extension://ipapngeacaeambjbojpfaffneeabeeke/background.js` |
+| 1. `chrome://extensions` lists HiddenGem Flow 1.0.2, enabled, no error badge | PASS | Card shows 1.0.2; SW running (`01-extensions-page.png`) |
+| **A. New-tab page + REAL toolbar click → standalone popup** | **PASS** | NTP=`chrome://new-tab-page/`; popup `type=popup` **360×680** at 0,0, `outer=360×680`; all sections present (header, "No website open", Daily Tasks, Add disabled + hint, Active Scripts + Allow User Scripts banner, Open Dashboard, GitHub link); screenshots `20-float-popup-newtab.png` (360×680) + `20b-desktop-popup.png` (full desktop, popup small at top-left over the NTP) |
+| **B. Second toolbar click → NO duplicate, existing popup focused** | **PASS** | Float pages stayed at 1; popup `type=popup`, `focused=true` at 920,300 after the test moved it aside (`21-float-popup-focused.png`) |
+| **C. Regression: REAL toolbar click on example.com → in-page floating still opens + drags** | **PASS** | Floating visible at 944,72 (322×508); drag moved it to 844,132 (`22-floating-example-regression.png`) |
+| **D. From the popup: Open Dashboard opens a normal window; Close closes the popup** | **PASS** | Dashboard opened in a `type=normal` window; popup closed via its Close button (`23-dashboard-from-popup.png`) |
+
+**Error collectors (final run):** console errors **0**, page errors **0**, failed requests **0**.
+(`results5.json`, `run5.log` in `docs/live-test/`; harness `live-test5.cjs` / `run-full5.sh` / `clicker2.py` in
+`/tmp/hgf-live-test/`, profile `profile-full5`, desktop recording `docs/live-test/preview-1.0.2.mp4`.)
+
+## Harness bugs fixed along the way (mine, not the extension)
+
+- **Run 9, test 1:** `chrome://extensions` is a Shadow-DOM page — `document.documentElement.innerText`
+  is empty there. Replaced with the `shadowText()` walker from `live-test4.cjs`.
+- **Run 9, test A:** the float page's headings are uppercased by CSS `text-transform`, so `innerText`
+  returns "DAILY TASKS" / "ACTIVE SCRIPTS" and the `/Daily Tasks/` check failed even though the popup was
+  correct (visible in `20-float-popup-newtab.png`). Section checks now use `textContent`.
+- **Run 10, test A:** Playwright's fixed `viewport: { 1280, 900 }` was suspected of resizing the popup;
+  switching to `viewport: null` did **not** change the size (1280×900) — the probe above proved the real
+  cause is `chrome.windows.create` bounds being ignored under bare Xvfb. `viewport: null` was kept
+  (harmless, and it makes page screenshots the window's true size). Also added an Escape press to dismiss
+  a stray NTP "Add shortcut" dialog the pin-flow's neutral click can open (it did not block the click;
+  it was still visible behind the popup in one desktop frame).
+- **Run 9, test B note:** the move-to-(920,300) silently did nothing while the popup was 1288×1031
+  (same ignored-geometry cause); after the `enforceFloatPopupSize` fix the move works and the popup was
+  focused at 920,300.
+
+## Open limitations (v1.0.2, not hidden)
+
+1. **Popup placement is Chrome's default** (0,0 under bare Xvfb, covering the main window's left edge).
+   On a real desktop Chrome places a new popup near the main window. The extension does not force a
+   position — only the 360×680 size.
+2. **Not tested on the owner's own Brave** — the owner's Load Unpacked test (README step 12) is the real
+   check on their machine, where a real window manager honours `create()` bounds directly.
+3. **Store repo is still empty** (from the v1.0.1 audit) — the store's honest "not published yet" path is
+   unchanged by this release; only the owner can publish `index.json`.
+
+---
+
+## Dev build 2026-11-15 (pre-final, version 1.0.0) — live-test addendum
+
+**Versioning rule (new, user-set):** the extension is not final yet, so there are no more version bumps. This build — and every pre-final dev build — stays at **1.0.0**; the final release will be **v1.0.0, the first version**. The `1.0.3` number used during this build's development is retired (this is the only place in the repo that still names it, as the record of the retirement): `package.json`, the manifest (via WXT), the dashboard header/Settings/footer, the float popup footer, the in-page floating footer, the background install log, the uploader footer and the README all read `1.0.0`; the CHANGELOG entry for this work is `Unreleased`, not a numbered release. Code comments that marked the changes with that number now say `Unreleased`. (The `1.0.1` / `1.0.2` labels in the older sections above are history — the builds that were actually delivered under those numbers — and are left as-is.)
+
+**What changed in this dev build** (this build's scope, now Unreleased): Phase 2 Daily Tasks fixes (Open All counts via `formatOpenResult`, first-tab-only foreground, duplicate-URL rejection, float-popup manual add); live "User Scripts: ON / OFF" + "Open extension details to enable" button in both floating windows; the **GitHub-connected** Store Uploader (revised spec — see below); any-text-file script import/export incl. `.txt`; the removed product name is gone everywhere (grep 0, see below); copy polish; and Find Script now shows when the store was last fetched (`· fetched <time>` on live loads; cached loads already showed `· cached from <date>`).
+
+### Harness runs (live-test6.cjs — real Chrome for Testing 158, Xvfb, Playwright + XTest clicks)
+
+| Run | Result | Notes |
+| --- | --- | --- |
+| Run 1 | 5 PASS / 3 FAIL | All 3 failures were harness bugs, not the extension: test 2 asserted the tab list once (a just-created tab reports `url ""` until navigation settles); test 3 read the Polymer details page once (renders late, and the walker picked up `<style>` text); test 4 used a hash-only `goto` on an already-loaded dashboard (no reload, Scripts panel stayed hidden). The extension behaviour in each was verified separately (duplicate rejection + Open All status in screenshots `24`/`25`; popup add + details-page URL in `26`/`27`; see the isolated probe below). Node smoke `/tmp/hgf-smoke6.cjs`: **30/30** (duplicate checks, `formatOpenResult`, `createScript` fallback name, `nonJsExtension`/`fileBaseName`, regressions). |
+| Run 2 | 5 PASS / 3 FAIL | Tests 4/5/7 fixed by the harness changes. Test 2: my assertion was wrong, not the code — the dashboard opens in sorted order (newest first), so the first opened tab is `example.net`, and it *was* the active one. Tests 3/6: the XTest `pinflow` click failed once under load (menu rendered late); test 6 cascaded from it (gem never pinned). |
+| Run 3 | **7 PASS / 1 FAIL** | Tests 0–2, 4–7 pass (see table below). Only test 3's final text assertion failed: the details tab opened at the correct URL, but the harness poll never found "Allow User Scripts" in that loaded run (Polymer render delayed past the 15 s poll). Closed by probe16 v2 below. |
+
+**Run 3 per-test table** (extension id `ipapngeacaeambjbojpfaffneeabeeke` throughout):
+
+| Test | Result | Evidence |
+| --- | --- | --- |
+| 0 — service worker starts | PASS | `chrome-extension://…/background.js` |
+| 1 — `chrome://extensions` lists HiddenGem Flow 1.0.0, enabled | PASS | Card shows HiddenGem Flow 1.0.0 (screenshot in run log) |
+| 2 — Dashboard Tasks: duplicate rejected; Open All counts; exactly one opened tab active (the first) | PASS | Duplicate error "This site is already saved." (`24-dashboard-duplicate.png`); Open All status "Opened 3 tabs." (`25-dashboard-openall.png`); tabs query: `example.net active:true`, `example.org active:false`, `example.com active:false` — net is first because the list is newest-first |
+| 3 — Float popup: manual add, duplicate rejected, User Scripts OFF + Details page opens (toggle stays OFF) | FAIL (harness text-read only) | Manual add + duplicate rejection worked; status OFF + button visible; click opened `chrome://extensions/?id=<id>` in a normal window; `chrome.userScripts.getScripts()` still threw (toggle OFF). Only the "Allow User Scripts" string was not found by the poll in that run — see probe16 v2, which closes it. Screenshot `27-extensions-details.png` (list view in that run) |
+| 4 — Scripts: `.txt` import (scan + confirm), Export `.user.js` + Export `.txt` | PASS | Imported "Txt Import Test" from `.txt`; exports `Txt_Import_Test.txt` + `Txt_Import_Test.user.js`, identical 295-byte content |
+| 5 — Store Uploader (download-only version, since replaced) | PASS (superseded) | Import → `.user.js` (336 bytes) + `index.json` read back correct. **This tested the old download-only uploader** — see probe17 for the revised GitHub-connected one; screenshots `29-store-uploader.png` is the old page |
+| 6 — Regression: in-page floating opens/drags, User Scripts OFF, Open All reports the count | PASS | Floating at 944,72 322×678; drag 944,72 → 844,132; status "User Scripts: OFF"; Open All "Opened 4 tabs." (`30-floating-us-off.png`) |
+| 7 — grep: zero matches for the removed product name in built output + repo | PASS | 0 matches in `.output/chrome-mv3` and 0 in the repo (source, docs, tools) |
+
+**Pre-test fix (real bug, caught before the live test):** the first version of `openExtensionDetails` used a bare `chrome.tabs.create({url})`, which would have opened the Details tab *inside the popup window* when the popup was focused (same bug class v1.0.2 fixed for the dashboard). Fixed by extracting `createTabInNormalWindow()` in `background.ts`, now shared by `openDashboard()` and `openExtensionDetails()`.
+
+**probe16 v2 — closes run-3 test 3** (`~/workspace/hgf-live-test/probe16.cjs`, screenshot `27b-extensions-details-toggle.png`): opening `chrome://extensions/?id=<id>` directly shows the Details view; the shadow-DOM text contains "Allow User Scripts" (found at 3 s) and the toggle is visibly **OFF** (grey, left) with Chrome's warning text; `chrome.userScripts.getScripts()` still throws. So: the button opens the right page, the toggle is there, and the extension did not and cannot flip it.
+
+**probe14 (isolated, run-1 test-2 reproduction):** `open-urls` returned `{ok:true, opened:3, skipped:0, invalid:0}`; immediately after the response 5 tabs existed (about:blank, dashboard, example.com `active:true`, example.org loading, example.net with `url ""` still loading); after 2 s and 4 s all 3 example tabs existed with example.com `active:true`. Proves the extension code was correct in run 1 — the harness's single non-retried query was the failure.
+
+**Harness bugs fixed along the way (mine, not the extension):** (a) test 2 polls `chrome.tabs.query` until 3 `https://example.*` tabs exist (up to ~12 s) and checks the active flag *before* the dashboard screenshot (screenshotting the dashboard re-activates it); (b) test 3 polls the details-page text up to ~15 s and the walker skips `<style>`/`<script>` nodes; (c) test 4 clicks the Scripts tab button instead of a hash-only `goto`; (d) error collectors de-duplicated with a `WeakSet` (the same error was recorded twice before); (e) `pinflow` retried up to 3 times; (f) the active-tab expectation corrected to the sorted (newest-first) order.
+
+**Error collectors (run 1):** console errors 43 events / 40 unique, page errors **0**, failed requests **0**. The console errors are favicon 404 noise (Google s2 favicon loads + `favicon.ico` requests on example.com/about:blank pages — same class as v1.0.1's 12 favicon 404s), not extension errors. No page error or failed request in any run.
+
+### probe17 — revised GitHub-connected Store Uploader (16/16 PASS)
+
+`~/workspace/hgf-live-test/probe17.cjs`, `file://` in real Chromium, screenshots `31`–`34`. The old download-only uploader was replaced wholesale (spec change); the new page has a GitHub connection section (owner/repo/branch + fine-grained PAT, localStorage only, **Test connection**, **Forget token**), a **Publish** flow (GET fresh `index.json`+sha → PUT `scripts/<slug>.user.js` → PUT updated `index.json` → purge jsDelivr for both files, sha-conflict refetch+retry once), a **Live Scripts** view (TOTAL count + search + upgrade form with suggested version bump), and the no-token download fallback. Entry format is exactly what `shared/store.ts` expects (`name, version, author, description, matches, codeUrl` to the raw file under `scripts/`, `updatedAt`).
+
+| Check | Result |
+| --- | --- |
+| `slugify("Titan Quick Buy")` → `titan-quick-buy` | PASS |
+| `suggestVersionBump("1.0.0")` → `1.0.1` | PASS |
+| Purge URL format, index: `https://purge.jsdelivr.net/gh/BidyutRoy2/hiddengem-flow-store@main/index.json` | PASS (exact match, evaluated live in the page) |
+| Purge URL format, script: `…/scripts/titan-quick-buy.user.js` | PASS (exact match) |
+| Raw `codeUrl` under `scripts/` | PASS (exact match) |
+| Import fills name/version/description/@match from pasted userscript | PASS (`31-uploader-import.png`) |
+| **Wrong token: Test connection shows a plain error** | PASS — "GitHub said 401 — the token is wrong or expired. Generate a fresh one (steps above) and paste it again." (`32-uploader-wrong-token.png`) |
+| Wrong token: token NOT saved to localStorage | PASS (`null` — the page saves only on a successful connection) |
+| **Wrong token: Publish shows a plain error** | PASS — "GitHub said 401 — the token is wrong, expired, or has no access to this repo…" |
+| **Wrong token: ZERO PUT requests to api.github.com** | PASS — only 2 safe GETs observed (Test connection contents check + Publish's index GET); 0 PUTs |
+| Forget token clears field + storage | PASS |
+| No-token fallback: Download `.user.js` | PASS — `uploader-test.user.js`, 288 bytes, header + code verified |
+| No-token fallback: Download `index.json` | PASS — parses; entry exact: name "Uploader Test", v1.2, `codeUrl` `…/main/scripts/uploader-test.user.js`, matches `["https://example.com/*"]`, `updatedAt` present (`33-uploader-fallback.png`) |
+| Live Scripts (no token): honest empty-store message | PASS — "0 script(s) in the store — index.json is not published yet…" (`34-uploader-live-scripts.png`) |
+| No page errors on the uploader page | PASS (0) |
+
+Console errors on the uploader page: **3, all expected API answers, not page bugs** — two `401` (the deliberate wrong-token Test connection + Publish GETs) and one `404` (the public jsDelivr index for the empty store). **Honest limit:** no real token was used and no real push was made — the GitHub-push path is verified by code inspection + the failed-auth test + the fallback test only. The owner's first real publish (with his token) is still the live proof. Two harness findings on the way: the sandboxed browser cannot reach the internet directly (direct TLS fails; `curl` works through the egress proxy), so the harness runs a local relay (`~/workspace/hgf-live-test/proxy-relay.cjs`, `127.0.0.1:18080`, CONNECT tunnelled end-to-end, no MITM); the first relay build crashed on a plain-HTTP Chrome-internal request (Node 24 rejects a `Host` header that differs from the request authority) — fixed by not overriding `Host` and by catching handler errors, and verified stable since (relay still answered 200 after the run).
+
+### probe18 — Find Script "Store fetched" line (PASS)
+
+`~/workspace/hgf-live-test/probe18.cjs`, screenshot `35-find-script-fetched.png`. The real store repo is empty, so a successful fetch is impossible against the live network — the jsDelivr index response was **stubbed with `page.route`** (the extension's real fetch/cache/render flow ran; only the store's answer was faked, and this paragraph says so). Results: **0 store requests before the Load store click** (no auto-fetch — the privacy design holds); after the click the meta line reads **"1 script · fetched 11/14/2026, 10:15:10 PM"** with the `jsDelivr` source badge, and the stubbed script is listed. (The date shown is the VM's clock, UTC; on the owner's machine it shows his local time.)
+
+### What is still NOT verified (honest)
+
+1. **The real GitHub push** — no real publish, no real upgrade, no real purge call has ever run (no token here). Wrong-token + fallback + code inspection is the verification that exists. The first publish is the owner's.
+2. **Non-JS inspect-only warning, live** — the `.py` "cannot run in a browser page" path was covered only by the Node smoke test (30/30, see run 1 above), not by a live browser check. The smoke file itself (`/tmp/hgf-smoke6.cjs`) was lost in the `/tmp` wipe below; the helpers it covered were re-verified live in runs 1–3 and probe17's in-page checks.
+3. **The store repo is still empty** (jsDelivr `index.json` 404, verified again through the relay in this session) — Find Script's live path can only show the honest "not published yet" message until the owner publishes.
+4. **`/tmp` wipe (2026-11-15 ~22:09):** the runtime cleared `/tmp` mid-session and destroyed the whole harness (`live-test6.cjs`, `run-full6.sh`, `clicker2.py`, the relay, profiles, `results6.json`/`run6.log`, the smoke test). Results above are the run outputs recorded in the session, not re-runnable from the lost files. A minimal persistent harness was rebuilt under `~/workspace/hgf-live-test/` (playwright-core installed, `proxy-relay.cjs`, `probe16.cjs`, `probe17.cjs`, `probe18.cjs`) so this cannot happen again.
+5. **Owner downgrade warning:** the owner currently has the v1.0.2 unpacked build installed. This dev build is version **1.0.0** — lower than 1.0.2. Loading it unpacked over the installed one may make Chrome complain (version downgrade). If it does, the workaround is to remove the old unpacked entry from `chrome://extensions` first and load this build fresh. Nothing was changed in this build because of that; the instruction is to report it honestly, not to hide it.
+
+### Screenshots / video (this dev build)
+
+`24-dashboard-duplicate.png`, `25-dashboard-openall.png`, `26-float-popup-add.png`, `27-extensions-details.png`, `27b-extensions-details-toggle.png` (toggle visibly OFF), `28-txt-import.png`, `29-store-uploader.png` (old download-only page — superseded), `30-floating-us-off.png`, `31-uploader-import.png`, `32-uploader-wrong-token.png`, `33-uploader-fallback.png`, `34-uploader-live-scripts.png`, `35-find-script-fetched.png`, `preview-dev-2026-11-15.mp4` (desktop recording of run 3; renamed under the new versioning rule).
+
+---
+
+## Script Store redesign — dev build 2026-11-15 (pre-final, version 1.0.0) — live-test addendum (probe19 + probe20)
+
+**What changed:** the dashboard tab "Find Script" is now **"Script Store"** everywhere user-facing (dashboard tab, Overview, bridge banner wording + button, floating-window button, uploader, README/docs); storage keys (`hiddengemflow.store.cache.v1` etc.) and code identifiers (`data-tab="store"`, `#store` hash) are unchanged. The listing is now proper **cards** (name, version badge, description, @match sites, Published + Updated dates, **Install** button into the existing scan-then-confirm flow). Header shows the total count and "Store fetched: <time>" on live loads. Sort is Recently updated (default), Latest, or Name A–Z. Index entries gain optional `publishedAt` + `updatedAt`; the uploader sets both on a new publish and keeps `publishedAt` on an upgrade; a missing date shows "Date not listed" (never invented). The bridge sentence changed only in the tab name ("…add it in one click from Script Store."), per the rename instruction. The old Latest/Oldest sort is gone. The float popup has no store-named control (its button is "Open Dashboard"), so nothing there needed renaming.
+
+**Fixtures, stated plainly:** the real store repo is still empty, so there is no real store data to test against. Every listing check below used **3 clearly-marked TEST fixture entries** (seeded into the store cache key, plus one stubbed live fetch): TEST Alpha Script (published 12 Nov 2026, updated 10 Nov 2026, inline code, installable), TEST Beta Script (published 10 Nov 2026, updated 14 Nov 2026, code URL deliberately fake), TEST Gamma Script (no dates at all, no matches). The fixtures were cleared afterwards and the empty state re-verified. No real store script exists yet.
+
+### probe19 — Script Store listing (35 PASS / 2 FAIL)
+
+`~/workspace/hgf-live-test/probe19.cjs`, real Chrome for Testing 158, fresh profile, relay proxy. Screenshots `36`–`41`.
+
+| Step | Result |
+| --- | --- |
+| Tab label "Script Store", heading "Script Store" | PASS |
+| No store request before the Load store click | PASS (0 requests — fetch stays click-only) |
+| A: real empty state on Load store (no stub) | PASS — "Could not load the store: The store answered 404." + "The official store repo is not published yet, or it could not be reached right now. No scripts to show — nothing here is fake." + GitHub link (`36-store-empty.png`) |
+| B: stubbed live fetch → "Store fetched:" line | PASS — meta "3 scripts · Store fetched: 11/14/2026, 10:42:53 PM", jsDelivr badge, 3 cards, default Recently updated = Beta, Alpha, Gamma (`37-store-cards.png`) |
+| C: empty state again after clearing fixtures | PASS |
+| D: cached copy renders | PASS — meta "3 scripts · cached from 11/14/2026, 10:43:02 PM" |
+| D: 3 cards with version badges + Install buttons | PASS (v2.1.0 / v1.0.0 / v0.5.0) |
+| D: Alpha dates "Published 12 Nov 2026 · Updated 10 Nov 2026" | PASS (exact string) |
+| D: Beta dates "Published 10 Nov 2026 · Updated 14 Nov 2026" | PASS (exact string) |
+| D: Gamma "Published Date not listed · Updated Date not listed" | PASS (exact string) |
+| D: Alpha matches line "Runs on https://example.com/*" | PASS |
+| D: Gamma matches line says runs nowhere | PASS |
+| D: sort Latest (published desc) = Alpha, Beta, Gamma | PASS |
+| D: sort Name A–Z = Alpha, Beta, Gamma | PASS |
+| D: sort Recently updated (default) = Beta, Alpha, Gamma | PASS |
+| D: search "beta" → only Beta; "example.com" (@match) → only Alpha | PASS / PASS |
+| D: search no match → "No scripts match your search." | PASS |
+| D: clearing search restores 3 cards | PASS |
+| D: Alpha Install → detail → scan (inline code) → Add script → Confirm install → installed | PASS — "Installed as “TEST Alpha Script” v1.0.0 — see the Scripts tab."; Scripts tab lists it |
+| D: Alpha detail meta shows both dates | PASS |
+| D: Beta detail → honest fetch error (fake codeUrl 404) | PASS — "Could not fetch this script's code: The server answered 404." |
+| G: floating window injects on example.com | **FAIL — by design, not a bug** (see below) |
+| E: empty state again after clearing fixtures + removing the TEST script | PASS (`39-store-empty-after-cleanup.png`) |
+| F: new entry sets publishedAt = updatedAt = today | PASS |
+| F: upgrade keeps publishedAt, updates updatedAt | PASS |
+| F: upgrade of a dateless entry leaves publishedAt empty | **FAIL — real uploader bug, caught by the test** (see below) |
+| F: entry preview shows both dates | PASS (`40-uploader-dates.png`) |
+| G: all 6 dashboard tabs switch | PASS |
+| G: standalone float popup renders | PASS (`41-float-popup.png`) |
+
+**Failure 1 — floating inject refused (expected, same design as v1.0.1 finding #3):** `chrome.scripting.executeScript` from the service worker was refused with "Cannot access contents of url https://example.com/. Extension manifest must request permission to access this host." The extension requests no host permissions (only optional `*://*/*`), so injection without a toolbar click (activeTab grant) or a granted optional permission is correctly blocked. The rename in the floating window is verified instead in the built output: `floating.js` contains "Open Script Store" (1×) and "add it in one click from Script Store", with **0** "Find Script" remaining — plus the live float-popup render and the in-page floating drag regression from run 3 (only a button-label string changed in `floating.ts` since). A live in-page floating check with the new label needs a real toolbar click (the owner's Load Unpacked test, or the XTest clicker, which was lost in the `/tmp` wipe).
+
+**Failure 2 — REAL uploader bug, found by the test and fixed:** `buildEntry(f, cfg, existing)` defaulted `publishedAt` to today whenever the existing entry's `publishedAt` was empty — so upgrading a dateless old entry would have *invented* a publish date, contradicting the spec. Fixed in `tools/store-uploader.html`: when an existing entry is passed in, `publishedAt` is kept exactly as the listed entry has it (even when empty); only a brand-new entry (no existing passed in) gets `publishedAt = today`. Re-verified in **probe20 (6/6 PASS)**: new entry (both dates today), upgrade (keeps 2026-11-10, updatedAt today), upgrade of a dateless entry (publishedAt stays empty), fallback Download index.json with a loaded old index (re-published entry keeps publishedAt 2026-11-10), old index loads, no page errors. The deliverable uploader copy contains the fix; the probe19 F failure no longer applies.
+
+**Error collectors (probe19):** page errors **0**. Console errors **9, all 404 responses, not page bugs**: the jsDelivr + raw `index.json` 404s from the empty store (one pair per real Load store click), Beta's fake code URL 404, and favicon 404 noise. **Store requests seen: 10** — one jsDelivr + one raw per real Load store click (both 404), one stubbed jsDelivr fetch, one raw fetch for Beta's code: no request ever happened before a Load store click.
+
+### Screenshots / video (Script Store redesign)
+
+`36-store-empty.png` (honest empty state), `37-store-cards.png` (cards with dates + Install button), `39-store-empty-after-cleanup.png` (empty again after fixtures cleared), `40-uploader-dates.png` (entry preview with both dates), `41-float-popup.png` (standalone popup). (`38-floating-store-button.png` was not taken — the inject was refused; see failure 1 above.)
+
+### What is still NOT verified (honest)
+
+1. **The real GitHub push** — unchanged from the previous addendum: no real token, no real publish/upgrade/purge has ever run. Push path = code inspection + wrong-token test + fallback test + the date rules verified live in probe20 against local files.
+2. **In-page floating window with the new label, live** — see failure 1 above. The label is verified in the built output; the window itself (drag, render) last passed live in run 3.
+3. **The real store is still empty** — every listing check used the TEST fixtures above; the first real script must still be published by the owner.
+4. **Owner downgrade warning (unchanged):** this dev build is version **1.0.0**, lower than the v1.0.2 unpacked build the owner has installed — Chrome may complain on Load Unpacked; remove the old unpacked entry first, load fresh.

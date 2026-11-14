@@ -1,0 +1,7 @@
+[LIVE5] Extension id: ipapngeacaeambjbojpfaffneeabeeke | SW: chrome-extension://ipapngeacaeambjbojpfaffneeabeeke/background.js
+[LIVE5] PASS 1. chrome://extensions lists HiddenGem Flow 1.0.2, enabled, no error badge — card shows HiddenGem Flow 1.0.2; SW running
+[LIVE5] PASS A. New-tab page + REAL toolbar click opens the standalone popup (float.html) — NTP=chrome://new-tab-page/; popup window type=popup 360x680 at 0,0 outer=360x680; desktop shot 20b-desktop-popup.png; sections OK; pin: [clicker2] Chrome window at (0,0) size 1280x900 | [clicker2] clicked (640,500) | [clicker2] clicked (1167,69) | [clicker2] pinflow: gem in menu at capture (77,145), pin at (280,145) | [clicker2] clicked (1100,225) | [clicker2] pinflow: gem pinned in toolbar; click: [clicker2] Chrome window at (0,0) size 1280x900 | [clicker2] gem at (1130,61) n=18 | [clicker2] clicked (1130,61)
+[LIVE5] PASS B. Second toolbar click on the new tab focuses the open popup — NO duplicate — float pages stayed at 1; popup type=popup focused=true at 920,300; move result={"id":1535417176,"type":"popup","focused":false,"width":360,"height":680,"left":920,"top":300}
+[LIVE5] PASS C. Regression: REAL toolbar click on example.com still opens the in-page floating window and drags — floating visible at 944,72 322x508; drag {"left":"944px","top":"72px"} → {"left":"844px","top":"132px"}
+[LIVE5] PASS D. From the popup, Open Dashboard opens the dashboard in a normal window; Close closes the popup — dashboard opened in a normal window; popup closed via its Close button
+[LIVE5] DONE: 6 PASS / 0 FAIL.
