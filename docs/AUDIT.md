@@ -31,7 +31,7 @@ install and grants nothing by itself.
 |---|---|---|
 | `storage` | Position, tasks, scripts, errors, store cache, bridge dismissals, runs — 28 `chrome.storage.local` call sites | KEEP |
 | `tabs` | Open dashboard, open task sites, read active tab for "Add current site", run tracking | KEEP |
-| `scripting` | Inject floating window on toolbar click only | KEEP |
+| `scripting` | Inject floating window on toolbar click only; **Unreleased (A-04):** also runtime-registers `public/gm-relay.js` as a content script for enabled scripts' `@match` patterns — no new permission, runs only where host access is already granted | KEEP |
 | `activeTab` | Temporary access to the clicked tab — this is what keeps *required* host permissions at zero | KEEP |
 | `optional_host_permissions: *://*/*` | **v1.0.1.** Site access for userscripts (Chrome runs a userscript only where the extension has host access). Optional, per-site, user-granted only; nothing is granted at install | KEEP |
 | `userScripts` | Script Manager registration (Phase 3). Requires the separate Chrome toggle "Allow User Scripts" — the UI guards and explains it | KEEP |
@@ -118,6 +118,7 @@ install and grants nothing by itself.
 | A-01 | High | `floating.ts`: the site line `On: ${location.hostname \|\| location.href}` was interpolated into `win.innerHTML`. Hostname cannot contain markup, but the `location.href` fallback could, and markup there would execute in the extension's isolated world. | Replaced with a `[data-site]` element whose `textContent` is set after insertion. Verified in the rebuilt `floating.js`. |
 | A-02 | Medium | `alarms` permission requested since Phase 1 but never used — zero `chrome.alarms` calls anywhere in the codebase. | Removed from `wxt.config.ts`; manifest now has 6 permissions; README + dashboard Settings text updated to say so. |
 | A-03 | Low | `GM_STORAGE_PREFIX` exported in `engine.ts` but the GM shim hardcoded the literal `"hgf:gm:"` — the two could diverge. | Shim now interpolates the constant (`JSON.stringify(GM_STORAGE_PREFIX)`). |
+| A-04 | High | `GM_notification` never reached the background: in Chrome 158's `chrome.userScripts` USER_SCRIPT world the ONLY chrome API is `chrome.runtime.id` — `chrome.runtime.sendMessage`, `chrome.storage`, `chrome.tabs` are all `undefined` (verified live with a 23-path capability probe). The shim guarded on `sendMessage` and silently no-opped, so the background `hiddengemflow:gm-notify` handler never fired. A store script ("Markdown Link Copier") copied to the clipboard fine but `chrome.notifications.getAll()` showed no notification. `chrome.storage` as a signal transport was also ruled out empirically — `chrome.storage` itself is `undefined` in that world. | Two-transport shim + relay (no new permissions): the shim still tries `sendMessage` first when it exists, otherwise appends a transient signal node (`[data-hgf-gm-notify]`, unique id, title/message as attributes) to the page DOM. New `public/gm-relay.js` — an ISOLATED-world content script runtime-registered by the background (`chrome.scripting.registerContentScripts`, `scripting` permission already held) for exactly the `@match` patterns of enabled scripts — drains the node (initial scan + MutationObserver) and forwards it with `sendMessage`, which exists in the isolated world. A `BroadcastChannel` was deliberately NOT used: it is origin-scoped across tabs, so one tab's signal would be forwarded by every other tab on the same origin. The background dedupes by notification id (in-memory, capped at 200) and re-attempts relay registration on startup, on script register/enable, and on `chrome.permissions.onAdded` (grant). Verified live 2026-11-15 — see `docs/LIVE_TEST_AUDIT.md` (GM_notification live test): Markdown Link Copier installed from the live store, "⧉ Copy link" clicked, notification appears with the right title/message, clipboard still correct. |
 | T-01 | Test | Phase 1 jsdom floating tests expected the old placeholder wordings ("No tasks saved yet.") — Phase 2/3 changed the honest empty-state copy. | Updated the two assertions to the v1.0.0 wording/behaviour (incl. the "Scripts are paused" state when user scripts are off). |
 | T-02 | Test | Phase 1 jsdom dashboard test seeded tasks as `{name:"a"}` — invalid under Phase 2's schema, so `loadTasks()` correctly filtered them to 0 and the count assertions failed. | Seeded valid tasks (`id`, `name`, `url`). The filter behaviour is correct, not a bug. |
 
@@ -132,10 +133,7 @@ install and grants nothing by itself.
    Tasks/Active Scripts sections never refreshing after injection). The
    owner's Load Unpacked test (README steps 5–11) is still the real
    end-to-end check on their own machine.
-2. **Store repo may not exist yet** (`BidyutRoy2/hiddengem-flow-store`).
-   The live fetch path is unverified; the failure path (jsDelivr → raw →
-   cache → honest "not published yet" message) is implemented and unit-tested,
-   but no real store script has ever been installed from it.
+2. **Store repo is live since 2026-11-15** (`BidyutRoy2/hiddengem-flow-store`, one real script — "Markdown Link Copier" v1.0.0). The live fetch path is now verified end to end (probe21: Load store → card → scan → install → the script ran on example.com). The failure path (jsDelivr → raw → cache → honest "not published yet" message) was verified earlier, on the empty store.
 3. **Scripts need TWO user grants, not one.** (a) **Allow User Scripts**
    (`chrome://extensions` → HiddenGem Flow → Details → ON, then reload) —
    the extension cannot flip it; the banner explains it. (b) **Site access**
@@ -143,10 +141,13 @@ install and grants nothing by itself.
    extension has host access. Access is an *optional* permission, granted
    per site from the Scripts tab ("Grant site access", Chrome's own prompt)
    or wholesale from Details → Site access → "On all sites". Without (b) a
-   registered script is inert, and the UI says so. The per-script prompt
-   button's accept-click could not be automated in the live test (Chrome's
-   permission bubble is browser UI, not page content); the grant itself was
-   verified live via the Details-page route.
+   registered script is inert, and the UI says so. The per-script prompt's
+   accept-click IS automatable in the live test after all: Chrome's
+   permission bubble is browser UI, not page content, but a real XTest
+   mouse click on its Allow button works (button centre 817,270 on the
+   1400×1000 test display — the first estimates at 770,273 and 842,305
+   missed the button's edges; verified live via
+   `chrome.permissions.contains()` after the click, 2026-11-15).
 4. **Scanner is a regex heuristic** (comments/strings stripped first). It can
    miss obfuscated code and can flag a safely-used pattern. It is a warning,
    never proof of safety.
