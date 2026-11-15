@@ -203,7 +203,7 @@
       <section id="panel-store" class="panel">
         <div class="card">
           <h2>Script Store</h2>
-          <p>Official scripts from the public store repo (<code>hiddengem-flow-store</code>), fetched through jsDelivr first and raw.githubusercontent as a fallback. Nothing here installs itself — every install needs your confirm first, after a security scan. Only JavaScript userscripts are listed: other file types cannot run in a browser page.</p>
+          <p>Official scripts from the public store repo (<code>hiddengem-flow-store</code>), fetched through raw.githubusercontent first and jsDelivr as a fallback. Nothing here installs itself — every install needs your confirm first, after a security scan. Only JavaScript userscripts are listed: other file types cannot run in a browser page.</p>
           <div class="row store-toolbar">
             <button id="storeLoad" type="button" class="primary">Load store</button>
             <span id="storeSource" class="badge-src" hidden></span>
@@ -288,7 +288,7 @@
             <li><strong>Scripts need two more grants, both yours to give.</strong> First, Chrome's per-extension <strong>Allow User Scripts</strong> toggle (chrome://extensions → HiddenGem Flow → Details) — no extension can flip it for you; the floating window has a button that opens that page directly. Second, <strong>site access</strong> for the sites a script runs on — an <em>optional</em> permission (<code>*://*/*</code>) granted per site (Scripts tab → Grant site access, or Site access → On all sites in the extension details). Until both are on, scripts are saved but never run.</li>
             <li><strong>Notifications</strong> are used only by <code>GM_notification</code> from a running script. <strong>Alarms</strong> was removed in v1.0.0 — it was requested but never used.</li>
           </ul>
-          <p><strong>Network, all user-triggered:</strong> nothing is sent to any server except (1) the best-effort favicon image (Google s2) shown next to each task site — a letter tile shows instead if it fails; (2) a script import from a URL, fetched once when you click Fetch, and the page you fetch can see the request; (3) <strong>Load store</strong>, which fetches the Official Store index (jsDelivr, then raw.githubusercontent), and opening a store script's detail view, which fetches its code once. The Smart Notification Bridge never fetches on its own — it reads the cached store copy. No analytics, no telemetry. The run log only records tabs this extension opened.</p>
+          <p><strong>Network, all user-triggered:</strong> nothing is sent to any server except (1) the best-effort favicon image (Google s2) shown next to each task site — a letter tile shows instead if it fails; (2) a script import from a URL, fetched once when you click Fetch, and the page you fetch can see the request; (3) <strong>Load store</strong>, which fetches the Official Store index (raw.githubusercontent, then jsDelivr), and opening a store script's detail view, which fetches its code once. The Smart Notification Bridge never fetches on its own — it reads the cached store copy. No analytics, no telemetry. The run log only records tabs this extension opened.</p>
         </div>
       </section>
     </main>
