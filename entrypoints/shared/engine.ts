@@ -29,11 +29,21 @@
 //    that read a value and use it on the next line. The price is honest
 //    and stated in the UI: the page's own JavaScript can read those keys,
 //    so never store secrets with GM_*.
-//  * GM_notification — sends chrome.runtime.sendMessage to the
-//    background, which shows a real chrome.notifications notification
-//    (needs the `notifications` permission). No DOM toast fallback is
-//    used: a toast inside the page is not a notification. If the message
-//    fails (background asleep), the call silently does nothing.
+//  * GM_notification — two transports, in order (finding A-04, 2026-11-15):
+//    (1) chrome.runtime.sendMessage to the background, when the world has
+//    it (MAIN world / older Chrome) — the background shows a real
+//    chrome.notifications notification (needs the `notifications`
+//    permission). No DOM toast fallback is used: a toast inside the page
+//    is not a notification. (2) In Chrome 158's USER_SCRIPT world the
+//    ONLY chrome API is chrome.runtime.id — sendMessage, storage, tabs
+//    are all undefined (verified live with a 23-path capability probe).
+//    So the shim appends a transient signal node to the page DOM and the
+//    relay content script (public/gm-relay.js, ISOLATED world, runtime-
+//    registered by the background for the same @match patterns) drains
+//    it and forwards it. A BroadcastChannel was deliberately NOT used:
+//    it is origin-scoped across tabs, so one tab's signal would be
+//    forwarded by every other tab on the same origin. If both transports
+//    fail, the call silently does nothing.
 //  * GM_addStyle — appends a <style> element to the document.
 //  * GM (object form: GM.setValue, GM.getValue, GM.addStyle,
 //    GM.notification) is provided as well — same four functions.
@@ -103,13 +113,18 @@ export async function requestHostAccess(script: Script): Promise<boolean> {
 
 export const GM_STORAGE_PREFIX = "hgf:gm:";
 
+/** DOM attribute the GM shim uses to signal a notification (drained by public/gm-relay.js). */
+export const GM_NOTIFY_SIGNAL_ATTR = "data-hgf-gm-notify";
+/** Base id for runtime-registered GM relay content scripts (one per @match pattern). */
+export const GM_RELAY_BASE_ID = "hgf-gm-relay";
+
 /**
  * The GM shim, injected BEFORE the user's script code in the same
  * userscript `js` entry, so GM_* exists when the script runs.
  */
 export function gmShimCode(scriptId: string): string {
   const id = JSON.stringify(String(scriptId));
-  return `(function(){var __id=${id};var __prefix=${JSON.stringify(GM_STORAGE_PREFIX)}+__id+":";function __set(k,v){try{localStorage.setItem(__prefix+String(k),JSON.stringify(v));}catch(e){}}function __get(k,d){try{var r=localStorage.getItem(__prefix+String(k));if(r===null)return d;try{return JSON.parse(r);}catch(e){return r;}}catch(e){return d;}}function __addStyle(css){try{var s=document.createElement("style");s.textContent=String(css);(document.head||document.documentElement).appendChild(s);return s;}catch(e){return null;}}function __notify(a,b){try{var o=(a&&typeof a==="object")?a:{text:a,title:b};if(typeof chrome!=="undefined"&&chrome.runtime&&chrome.runtime.sendMessage){chrome.runtime.sendMessage({type:"hiddengemflow:gm-notify",title:String(o.title||"HiddenGem Flow"),message:String(o.text||"")});}}catch(e){}}window.GM_setValue=__set;window.GM_getValue=__get;window.GM_addStyle=__addStyle;window.GM_notification=__notify;window.GM={setValue:__set,getValue:__get,addStyle:__addStyle,notification:__notify};})();`;
+  return `(function(){var __id=${id};var __prefix=${JSON.stringify(GM_STORAGE_PREFIX)}+__id+":";function __set(k,v){try{localStorage.setItem(__prefix+String(k),JSON.stringify(v));}catch(e){}}function __get(k,d){try{var r=localStorage.getItem(__prefix+String(k));if(r===null)return d;try{return JSON.parse(r);}catch(e){return r;}}catch(e){return d;}}function __addStyle(css){try{var s=document.createElement("style");s.textContent=String(css);(document.head||document.documentElement).appendChild(s);return s;}catch(e){return null;}}function __notify(a,b){try{var o=(a&&typeof a==="object")?a:{text:a,title:b};var __t=String(o.title||"HiddenGem Flow").slice(0,80);var __m=String(o.text||"").slice(0,400);var __id="n"+Date.now().toString(36)+Math.floor(Math.random()*1e9).toString(36);if(typeof chrome!=="undefined"&&chrome.runtime&&typeof chrome.runtime.sendMessage==="function"){try{chrome.runtime.sendMessage({type:"hiddengemflow:gm-notify",title:__t,message:__m,id:__id});return;}catch(e){}}try{var __d=document.createElement("div");__d.setAttribute("data-hgf-gm-notify","");__d.setAttribute("data-id",__id);__d.setAttribute("data-title",__t);__d.setAttribute("data-message",__m);__d.style.display="none";(document.documentElement||document.body||document).appendChild(__d);}catch(e){}}catch(e){}}window.GM_setValue=__set;window.GM_getValue=__get;window.GM_addStyle=__addStyle;window.GM_notification=__notify;window.GM={setValue:__set,getValue:__get,addStyle:__addStyle,notification:__notify};})();`;
 }
 
 /** The chrome.userScripts registration object for one script. */
@@ -166,6 +181,7 @@ export async function registerScript(script: Script): Promise<void> {
   try {
     await chrome.userScripts.register([buildRegisteredScript(script)]);
     await clearScriptError(script.id);
+    await ensureGmRelayForEnabled();
   } catch (err) {
     const msg = `Registration failed: ${err instanceof Error ? err.message : String(err)}`;
     await setScriptError(script.id, msg);
@@ -181,6 +197,7 @@ export async function unregisterScript(id: string): Promise<void> {
     // Already unregistered or API unavailable — nothing to do.
   }
   await clearScriptError(id);
+  await ensureGmRelayForEnabled();
 }
 
 /**
@@ -218,7 +235,81 @@ export async function reregisterEnabledFromStorage(): Promise<Record<string, str
   const check = await checkUserScripts();
   if (!check.available) return {};
   const scripts = await loadScripts();
-  return registerEnabledScripts(scripts);
+  const errors = await registerEnabledScripts(scripts);
+  await ensureGmRelayForEnabled();
+  return errors;
+}
+
+function relayIdFor(pattern: string): string {
+  let h = 0;
+  for (let i = 0; i < pattern.length; i++) h = (h * 31 + pattern.charCodeAt(i)) >>> 0;
+  return `${GM_RELAY_BASE_ID}-${h.toString(36)}`;
+}
+
+/**
+ * GM_notification relay (finding A-04): register public/gm-relay.js as a
+ * runtime content script for the given @match patterns, one registration
+ * per pattern so a pattern without host access yet fails alone instead
+ * of taking the rest down with it. No new manifest permissions:
+ * registerContentScripts needs only the `scripting` permission (already
+ * granted), and a pattern runs only where the user has already granted
+ * host access — exactly where the userscript itself can run. Patterns
+ * with no access yet throw here and are re-attempted on the next
+ * registration / startup / permission grant. Registrations for patterns
+ * no longer wanted are removed. Never throws.
+ */
+export async function ensureGmRelay(matches: string[]): Promise<void> {
+  try {
+    if (typeof chrome === "undefined" || !chrome?.scripting?.registerContentScripts) return;
+    const wanted = new Map<string, string>();
+    for (const m of matches || []) {
+      if (typeof m === "string" && m) wanted.set(relayIdFor(m), m);
+    }
+    try {
+      const existing = await chrome.scripting.getRegisteredContentScripts();
+      for (const s of existing || []) {
+        if (typeof s?.id === "string" && s.id.startsWith(GM_RELAY_BASE_ID) && !wanted.has(s.id)) {
+          try {
+            await chrome.scripting.unregisterContentScripts({ ids: [s.id] });
+          } catch {}
+        }
+      }
+    } catch {}
+    for (const [id, pattern] of wanted) {
+      try {
+        try {
+          await chrome.scripting.unregisterContentScripts({ ids: [id] });
+        } catch {}
+        await chrome.scripting.registerContentScripts([
+          {
+            id,
+            matches: [pattern],
+            js: ["gm-relay.js"],
+            runAt: "document_idle",
+            world: "ISOLATED",
+            persistAcrossSessions: true,
+          },
+        ]);
+      } catch {
+        // No host access for this pattern yet (or Chrome refused it).
+        // The userscript cannot run there either, so nothing is lost;
+        // re-attempted on the next registration / startup / grant.
+      }
+    }
+  } catch {}
+}
+
+/** Collect the @match patterns of every enabled script and ensure the relay for them. Never throws. */
+export async function ensureGmRelayForEnabled(): Promise<void> {
+  try {
+    const scripts = await loadScripts();
+    const matches: string[] = [];
+    for (const s of scripts) {
+      if (!s.enabled) continue;
+      for (const m of s.matches || []) if (!matches.includes(m)) matches.push(m);
+    }
+    await ensureGmRelay(matches);
+  } catch {}
 }
 
 /**
