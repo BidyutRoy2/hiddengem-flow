@@ -111,10 +111,14 @@ Two grants are needed before any userscript runs. Both are yours to give — no 
 1. **Allow User Scripts** — `chrome://extensions` → HiddenGem Flow → Details → turn **Allow User Scripts** ON. The dashboard and the floating window both show a button that opens that Details page directly.
 2. **Site access** — click **Grant site access** on a script and allow Chrome's prompt. Until granted, a script is registered but never runs.
 
+## Updates (unpacked installs never auto-update)
+
+Chrome never updates an unpacked extension by itself — there is no self-update API and no extension can replace its own files. So HiddenGem Flow **notices** a newer build instead of installing one: it checks the public GitHub releases page at most once every 6 hours (on startup and when the dashboard opens), plus whenever you click **Check for updates** in Settings. When a newer build exists, the **Overview tab shows a banner** with the release tag and the manual steps — download the new build from the release page, replace the files in your unpacked extension folder, then press **Reload** in `chrome://extensions`. **Do not remove the extension** — removing deletes your saved tasks and scripts. The floating window shows one compact line ("Update available: <tag> — open the Dashboard to download it."); the banner can be dismissed per release (a newer build shows it again). No desktop notification, no data sent — the check is a plain, unauthenticated listing request to `api.github.com` for the public releases. Real auto-update will come with the Chrome Web Store release (not yet published). One honest quirk: the check compares the build's date against the release asset's upload time, so a fresh install of a just-uploaded build may briefly report an update available pointing at itself — Dismiss hides it until the next build.
+
 ## Privacy
 
 - Everything you save — tasks, scripts, positions, logs — stays in `chrome.storage.local` on your machine.
-- The only automatic external request is a best-effort favicon image (Google's s2 service) next to each task site; if it fails, a letter tile shows instead.
+- Two automatic external requests exist: a best-effort favicon image (Google's s2 service) next to each task site (if it fails, a letter tile shows instead), and the update checker asking `api.github.com` for the latest public release at most once every 6 hours, plus on manual check (see Updates above).
 - The store is fetched only when you click **Load store**. Importing from a URL fetches only that URL, when you click it.
 - No account, no analytics, no telemetry.
 
