@@ -27,6 +27,38 @@
 
 That's it — the floating window and dashboard are ready. Two grants are still needed before any userscript runs (see [Install](#install-load-unpacked)): turn **Allow User Scripts** ON in the extension's Details page, then **Grant site access** for each script's site. This is a pre-final dev build; the final release will also be v1.0.0, the first version.
 
+### Watch: install in 60 seconds
+
+**▶ [Watch the install video](docs/install-guide/install.mp4)** (60 seconds, recorded in real Chrome — download → extract → Load unpacked → Allow User Scripts → floating window opens). Recorded in Chrome for Testing; the steps are identical in normal Chrome. Full notes in [`docs/install-guide/RUN_NOTES.md`](docs/install-guide/RUN_NOTES.md).
+
+**1. Download the zip from the release**
+
+<img src="docs/install-guide/01-release-download.png" width="700" alt="Download the zip from the release">
+
+**2. Extract it — the folder contains `manifest.json`**
+
+<img src="docs/install-guide/02-extracted-folder.png" width="700" alt="Extracted folder with manifest.json">
+
+**3. Open `chrome://extensions` and turn Developer mode ON**
+
+<img src="docs/install-guide/03-developer-mode.png" width="700" alt="Developer mode on in chrome://extensions">
+
+**4. Click Load unpacked and pick the extracted folder**
+
+<img src="docs/install-guide/04-load-unpacked.png" width="700" alt="Load unpacked file picker with the folder selected">
+
+**5. HiddenGem Flow appears in the extensions list**
+
+<img src="docs/install-guide/05-extension-loaded.png" width="700" alt="HiddenGem Flow 1.0.0 listed in chrome://extensions">
+
+**6. Open Details and turn Allow User Scripts ON**
+
+<img src="docs/install-guide/06-allow-user-scripts.png" width="700" alt="Allow User Scripts toggle on">
+
+**7. Click the toolbar icon on any site — the floating window opens**
+
+<img src="docs/install-guide/07-floating-window.png" width="700" alt="Floating window open on example.com with User Scripts ON">
+
 ## Screenshots
 
 | Dashboard | Floating window |
