@@ -487,3 +487,71 @@ A 23-path capability probe (`probe-cap.cjs`, same world) confirmed the map exact
 1. **The uploader's raw-first Live Scripts read** — the code path changed identically (raw first, jsDelivr fallback), but only the extension's Load store was exercised live in probe22.
 2. **Owner's own-machine test** — unchanged: the Load Unpacked steps on the owner's Brave remain the real end-to-end check.
 3. **jsDelivr catching up** — irrelevant to the fix now (raw is first), but jsDelivr's own `@main` copy may still show 1 script until its branch cache refreshes on its own schedule.
+
+## Probe 23 (2026-11-15): in-extension update checker (finding A-06)
+
+`~/workspace/hgf-live-test/probe23-update-checker.cjs`, real Chrome for Testing 158 under Xvfb :99, fresh profiles, real GitHub API (no stubbing) via the proxy relay. The live release is `v1.0.0-dev-20261115` (published 2026-11-15T00:03:02Z; zip asset `hiddengem-flow-extension.zip` updated 2026-11-15T01:18:54Z). Typecheck clean, `wxt build` OK. Pure-function smoke (semver, parseRelease, isNewerRelease, shouldCheckNow, isUpdateAvailable): **25/25 PASS** (`~/workspace/hgf-live-test/smoke-updates.ts`, run through esbuild against the current source).
+
+### Phase A — TEST build (`BUILD_DATE` 2026-11-14, older than the live asset): **15 PASS / 0 FAIL**
+
+| Check | Result |
+|---|---|
+| Floating line shows the real tag | PASS — "Update available: v1.0.0-dev-20261115 — open the Dashboard to download it." |
+| Floating line wording | PASS — "open the Dashboard to download it" |
+| Dashboard banner appears | PASS — "A newer build is available — v1.0.0-dev-20261115 (updated 15 Nov 2026). Download it from the release page, replace the files in your unpacked extension folder, then press Reload in chrome://extensions. Do not remove the extension — removing deletes your saved tasks and scripts." |
+| Banner has the real tag | PASS |
+| Banner is honest (Do not remove the extension) | PASS |
+| Banner is honest (press Reload in chrome://extensions) | PASS |
+| Download opens the real release page | PASS — new tab `https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v1.0.0-dev-20261115` |
+| How to update shows the manual steps | PASS — "1. Click Download the new build and unzip it. 2. In your unpacked extension folder, replace all files with the new ones. 3. Open chrome://extensions and press Reload on HiddenGem Flow. Do not remove the extension — removing deletes your saved tasks and scripts." |
+| Dismiss hides the banner | PASS |
+| Dismiss persists after reload | PASS |
+| Settings shows a fresh Last checked (not never) | PASS — "Last checked: 11/15/2026, 1:29:30 AM" |
+| Settings manual check reports available | PASS — "A newer build is available — v1.0.0-dev-20261115. You dismissed the Overview banner for this release — it will show again for a newer one." |
+| Settings notes the banner was dismissed | PASS |
+| 0 page errors | PASS |
+| 0 console errors | PASS |
+
+**Phase A first run: 10 PASS / 5 FAIL — two real extension bugs + one harness block, all fixed before the green re-run:**
+- **BUG 1 (real):** after Dismiss, the Settings manual check reported "You are up to date." — `checkForUpdates` returned the dismiss-aware `available`. Fixed: the check returns RAW availability; only the banner / floating line apply the dismiss rule.
+- **BUG 2 (real):** the Download `<button>` + `window.open` never opened the release page (tab event timed out, URL empty). Fixed: Download is a real `<a class="primary" target="_blank">` to the release page, href set from the stored record.
+- **HARNESS BLOCK:** in a fresh profile the gem starts UNPINNED, so the toolbar template match scored 0.266 at the puzzle icon. The probe now clicks the puzzle icon and the gem inside the extensions menu (menu match 0.984, fires the action); if that still fails, it pins the gem and clicks the toolbar icon. Harness only — no extension change.
+
+### Phase B — DELIVERED build (`BUILD_DATE` 2026-11-15T01:30:00Z, after the live asset): **8 PASS / 0 FAIL**
+
+| Check | Result |
+|---|---|
+| Background check ran (checkedAt set) | PASS — stored record `{"tag":"v1.0.0-dev-20261115","available":false,"assetUpdatedAt":"2026-11-15T01:18:54Z","checkedAt":1794706227301}` |
+| Record says no update available | PASS |
+| Record holds the real tag | PASS |
+| Dashboard banner stays hidden | PASS |
+| In-page floating line hidden | PASS — element exists, `hidden: true` |
+| Standalone popup line hidden | PASS — element exists, `hidden: true` |
+| Settings manual check reports up to date | PASS — "You are up to date." |
+| Settings Last checked is fresh (not never) | PASS — "Last checked: 11/15/2026, 1:30:48 AM" |
+
+**Phase B harness note:** the final dashboard screenshot (`55-update-settings-uptodate.png`) failed once on a Playwright `page.screenshot` fonts-load timeout (30 s) after all 8 checks had passed — a harness flake, not an extension failure. Retaken with a CDP `Page.captureScreenshot` from the same phase-B profile (`~/workspace/hgf-live-test/retake-55.cjs`): Settings shows "You are up to date." with "Last checked: 11/15/2026, 1:32:25 AM". The built chunk was also verified: `BUILD_DATE` `2026-11-15T01:30:00Z` is in `background.js` (the check runs in the background; the dashboard chunk correctly holds only the record helpers — the dashboard asks the background via `MSG_CHECK_UPDATES`, it never fetches the API itself), and the old test date `2026-11-14T00:00:00Z` is absent from the delivered build.
+
+### Screenshots (probe23)
+
+`52-update-banner.png` (banner with the real tag + the three controls), `53-update-floating-line.png` (compact line under the floating header on example.com), `54-update-settings-available.png` (Settings: available + dismissed note), `55-update-settings-uptodate.png` (Settings: "You are up to date." + fresh Last checked), `56-update-no-banner.png` (Overview with no banner — no false positive). All five viewed and confirmed visually.
+
+### What is still NOT verified (honest)
+
+1. **The A-06 self-pointing banner is FIXED (grace window), not just documented** — see the addendum below. The rule itself (an asset updated within 2h of `BUILD_DATE` counts as up to date on the first check) is proven by the 6 pure-function grace cases; a live run against the future uploaded asset is still the owner's to observe (his Brave will not show the banner for the current build after he updates).
+2. **Owner's own-machine test** — unchanged: the update banner on his Brave (which still has an older build) is expected to appear once he updates; the replace-files + Reload flow on his machine is still his to run.
+3. **Rate-limit path** — the 403/silent-fail + 1 h backoff was verified by code (pure-function smoke) only; the live API never rate-limited during the probes (60/hr/IP, far above one check per 6 h).
+
+### Probe 23 addendum (2026-11-15): A-06 grace-window fix — first-check 2h upload lag
+
+**The flaw:** `BUILD_DATE` is the build time, but the release asset's `updated_at` is its UPLOAD time, always a few minutes later. Every fresh install of the delivered zip compared asset `updated_at` > `BUILD_DATE` and reported an update available pointing at ITSELF — permanently for fresh profiles, not briefly. Dismiss hid it once, but a fresh profile (or cleared storage) showed it again.
+
+**The fix (`entrypoints/shared/updates.ts` only):** `checkForUpdates()` on the first check ever (no release stored yet — a failed check or an empty release list leaves `tag` empty, so the grace still applies on the next attempt) uses the new pure function `isNewerOnFirstCheck()` with `FIRST_CHECK_GRACE_MS` = 2 h: an asset updated at most 2 h after `BUILD_DATE` is the normal upload lag and counts as up to date (the release is stored as seen); only a gap over 2 h counts as a genuinely older build. The semver signal is not graced — a later tag is unambiguous evidence whatever the timestamps say. Later checks keep the plain `isNewerRelease()` rule, so a replaced asset after the first check is still detected. Silent failure + 1 h backoff and the dismiss rule (keyed by tag + asset `updated_at`) are unchanged. No UI change, no new permission, no `chrome.alarms`.
+
+**Verification (same harness, real Chrome 158, real GitHub API, no stubbing):**
+- Pure-function smoke (`~/workspace/hgf-live-test/smoke-updates.ts`, esbuild): **31/31 PASS** — 25 existing cases plus 6 new grace cases: gap 5 min → up to date; gap exactly 2 h → up to date (boundary); gap 3 h → update available; asset older than build (delivered build) → up to date; semver bump bypasses the grace window; no-zip release falls back to `published_at`.
+- Probe 23 **Phase A re-run** (TEST build `BUILD_DATE` 2026-11-14, gap ~25 h > 2 h): **15 PASS / 0 FAIL** — the change touches the first-check branch, so Phase A was re-run rather than assumed safe: floating line, banner with the real tag, download opens the real release page, How-to, Dismiss hides + persists, Settings reports available + notes the dismissal. 0 page / 0 console errors.
+- Probe 23 **Phase B re-run** (DELIVERED build `BUILD_DATE` 2026-11-15T01:30:00Z): **8 PASS / 0 FAIL** — background check ran, record says no update available, real tag stored, banner stays hidden, in-page floating + standalone popup lines hidden, Settings "You are up to date." with a fresh Last checked. 0 page / 0 console errors (verified in the CDP retake, `~/workspace/hgf-live-test/retake-55-grace.cjs` — the probe's final `page.screenshot` timed out twice waiting for fonts to load, the same harness flake as probe23; the screenshot was retaken with `Page.captureScreenshot` from the same phase-B profile).
+- The built code was checked directly: the delivered `background.js` contains the grace constant (`7200*1e3`) and the first-check branch (`gap > grace` after the semver check); `BUILD_DATE` `2026-11-15T01:30:00Z` is present, the old test date `2026-11-14T00:00:00Z` is absent.
+- **Honest note on what the live runs prove:** the live release asset is still the raw-first build (updated 2026-11-15T01:18:54Z), which is OLDER than the delivered build's `BUILD_DATE` — so Phase B shows no banner under either rule. The grace rule itself is proven by the 6 pure-function cases (a 5-minute gap is the exact upload-lag shape); the live proof against a freshly uploaded asset happens when this build is uploaded as the new release asset and a fresh install checks it.
+- Screenshots 52–56 were re-taken by the re-runs (same paths, new build states); 52 (banner, Phase A) and 55 (Settings up to date, Phase B retake) viewed and confirmed.
