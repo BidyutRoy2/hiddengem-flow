@@ -400,5 +400,61 @@ Console errors on the uploader page: **3, all expected API answers, not page bug
 
 1. **The real GitHub push** — unchanged from the previous addendum: no real token, no real publish/upgrade/purge has ever run. Push path = code inspection + wrong-token test + fallback test + the date rules verified live in probe20 against local files.
 2. **In-page floating window with the new label, live** — see failure 1 above. The label is verified in the built output; the window itself (drag, render) last passed live in run 3.
-3. **The real store is still empty** — every listing check used the TEST fixtures above; the first real script must still be published by the owner.
+3. **The real store is still empty** — every listing check used the TEST fixtures above; the first real script must still be published by the owner. **UPDATE 2026-11-15 (probe21, below): the store is now LIVE with one real script — "Markdown Link Copier" v1.0.0 — installed from the live store and run on example.com.**
 4. **Owner downgrade warning (unchanged):** this dev build is version **1.0.0**, lower than the v1.0.2 unpacked build the owner has installed — Chrome may complain on Load Unpacked; remove the old unpacked entry first, load fresh.
+
+## GM_notification fix (A-04) — dev build 2026-11-15 (pre-final, version 1.0.0) — live-test addendum (probe21 + probe21b + probe21c)
+
+### The bug (verified live, not guessed)
+
+`GM_notification` never reached the background. In Chrome 158's `chrome.userScripts` USER_SCRIPT world the ONLY chrome API is `chrome.runtime.id` — `chrome.runtime.sendMessage`, `chrome.storage`, `chrome.tabs`, `chrome.notifications` are all `undefined`. The GM shim guarded on `sendMessage` and silently no-opped, so the background `hiddengemflow:gm-notify` handler never fired. Proof: the store script "Markdown Link Copier" copied to the clipboard fine, but `chrome.notifications.getAll()` showed no notification after clicking; a diagnostic userscript in the same world reported `chrome=object, chrome.runtime=object, chrome.runtime.sendMessage=undefined`; the background received zero messages. A direct `chrome.notifications.create` from the service worker DOES work, so the notification plumbing itself was fine — only the GM→background transport was broken.
+
+A 23-path capability probe (`probe-cap.cjs`, same world) confirmed the map exactly: `runtime: object`, `runtime.id: string`, everything else `undefined`; `BroadcastChannel`, `CustomEvent`, `MutationObserver` are functions (standard DOM APIs, available).
+
+`chrome.storage` as a signal transport was ruled out empirically the same way — `chrome.storage` itself is `undefined` in that world, so a storage write from the shim throws and no `onChanged` could ever fire.
+
+### The fix (no new permissions)
+
+- GM shim (`shared/engine.ts` `__notify`): tries `chrome.runtime.sendMessage` first when it exists; otherwise appends a transient signal node (`[data-hgf-gm-notify]`, unique id + title/message as attributes) to the page DOM. A `BroadcastChannel` was deliberately NOT used: it is origin-scoped across tabs, so one tab's signal would be forwarded by the relay in every other tab on the same origin.
+- New relay content script (`public/gm-relay.js`, ISOLATED world): drains the node (initial scan + MutationObserver) and forwards it with `chrome.runtime.sendMessage`. Runtime-registered by the background via `chrome.scripting.registerContentScripts` (the `scripting` permission is already held) for exactly the `@match` patterns of enabled scripts — one registration per pattern, so a pattern without host access yet fails alone. Re-attempted on startup, on script register/enable, and on `chrome.permissions.onAdded` (grant). Unregistered when no enabled script needs it.
+- Background: dedupes by notification id (in-memory, capped at 200). The notification handler itself is unchanged.
+- Note: `chrome.scripting.registerContentScripts` takes file paths for `js`, not `{ code }` objects (a `{ code }` object throws "Invalid type: expected string, found object") — that is why the relay is a plain file in `public/`, shipped verbatim.
+
+### Per-test results (probe21, fresh profile, rebuilt extension, live store)
+
+| Check | Result |
+|---|---|
+| Allow User Scripts toggle ON | PASS (real click on chrome://extensions details) |
+| Dashboard loads (Script Store tab) | PASS |
+| Live store loads — "1 script · Store fetched: 11/15/2026, 12:50:22 AM" | PASS (real jsDelivr fetch, no fixture) |
+| Live store lists "Markdown Link Copier" | PASS |
+| Store detail opens + scan (live code fetched) | PASS |
+| Add script → Confirm install → installed message | PASS — "Installed as “Markdown Link Copier” v1.0.0 — see the Scripts tab." |
+| Markdown Link Copier listed in Scripts tab | PASS |
+| Host access granted (`chrome.permissions.contains`) | PASS (dashboard "Grant site access" + real XTest click on the native Allow button at 817,270) |
+| GM relay content script registered for `*://*/*` | PASS — `hgf-gm-relay-5dyr11`, matches `["*://*/*"]` |
+| GM round-trip test script registered | PASS |
+| "⧉ Copy link" button present on example.com | PASS |
+| Notification appears (exactly one, no duplicates) | PASS — `chrome.notifications.getAll()` returns exactly 1 entry |
+| Notification title "Markdown Link Copier" / message "Markdown link copied." | PASS — captured the exact `chrome.notifications.create` call in the service worker (probe21c): `{type:"basic", iconUrl:"chrome-extension://…/icons/icon128.png", title:"Markdown Link Copier", message:"Markdown link copied."}` |
+| Clipboard holds "[Example Domain](https://example.com/)" | PASS (probes 21b + 21c; see probe21 note below) |
+| GM_setValue/GM_getValue round-trip (title HGF-GM-OK) | PASS |
+| All 6 dashboard tabs switch | PASS |
+| 0 page errors, 0 console errors | PASS |
+
+**Probe21 notes (harness quirks, not extension bugs):**
+- `chrome.notifications.getAll()` returns `{id: true}` — booleans, NOT notification objects — so the first title/message checks (which read `.title` off the values) failed while the notification itself existed. There is no `chrome.notifications.get` in the API (`TypeError: chrome.notifications.get is not a function` in the service worker). The title/message were instead proven by wrapping `chrome.notifications.create` in the service worker and capturing the exact options (probe21c).
+- Probe21's clipboard read returned `""` once; the same read returned the exact markdown in both follow-up runs (21b, 21c). The copy itself works (the notification's "Markdown link copied." branch only runs after `writeText` resolves); the single empty read was a one-off harness flake.
+- The GM round-trip test script (registered directly by the probe, not through the extension's storage) did not run in the 21b/21c sessions: direct `chrome.userScripts.register` calls do not survive a browser restart — only the extension's own storage-backed scripts are re-registered on startup by design. The round-trip result stands from probe21 (in-session, title `HGF-GM-OK`).
+
+**Harness notes (mine, not the extension):** the native permission prompt's Allow button centre is **817,270** on the 1400×1000 test display. Two earlier estimates missed it: 770,273 lands on the right edge of Deny (the pointer sits on the seam), 842,305 lands below-right of the button. A tight 4× crop of the button row settled it. The dashboard "Grant site access" click itself was always fine.
+
+### Screenshots (probe21)
+
+`42-store-md-link-installed.png` (installed message), `43-gm-notification-page.png` (example.com with the Copy link button).
+
+### What is still NOT verified (honest)
+
+1. **The real GitHub push** — unchanged: no real token, no real publish/upgrade/purge has ever run.
+2. **Owner's own-machine test** — the Load Unpacked steps on the owner's Brave remain the real end-to-end check.
+3. **The relay when host access is granted per-site (not `*://*/*`)** — probe21 granted `*://*/*` via one script; per-pattern registration failure/retry for a single-site grant was not exercised live (the code path is the same `registerContentScripts` call, caught per pattern).
