@@ -18,6 +18,15 @@
 
 ---
 
+## Download — ready to install
+
+**[⬇ Download the extension (pre-release v1.0.0-dev-20261115)](https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v1.0.0-dev-20261115)** — get `hiddengem-flow-extension.zip`, extract it, then:
+
+1. Open `chrome://extensions` (or `brave://extensions`) → turn on **Developer mode**.
+2. Click **Load unpacked** and select the extracted folder.
+
+That's it — the floating window and dashboard are ready. Two grants are still needed before any userscript runs (see [Install](#install-load-unpacked)): turn **Allow User Scripts** ON in the extension's Details page, then **Grant site access** for each script's site. This is a pre-final dev build; the final release will also be v1.0.0, the first version.
+
 ## Screenshots
 
 | Dashboard | Floating window |
