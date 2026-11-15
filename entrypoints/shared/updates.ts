@@ -72,10 +72,23 @@ export const FIRST_CHECK_GRACE_MS = 2 * 60 * 60 * 1000;
  * uses the 2h grace window in isNewerOnFirstCheck: an asset updated
  * within 2h of BUILD_DATE is the normal upload lag and counts as up
  * to date; only a bigger gap counts as a genuinely older build.
- * Later checks keep the plain rule, so a replaced asset after the
- * first check is still detected.
+ * The same upload-lag trap hit LATER checks too, in the other
+ * direction: comparing the asset's updated_at against BUILD_DATE on
+ * a later check is always true for the installed build, so the
+ * Settings manual check permanently reported an update pointing at
+ * itself even though the background first check was correctly up to
+ * date (A-06 second bug). The first attempt at a fix — later checks
+ * comparing ONLY against the stored record — swung too far the
+ * other way: it forgot an old build's verdict the moment a second
+ * check ran (probe23 Phase A: the banner appeared, then the manual
+ * check said "up to date"). So later checks now OR both rules: the
+ * grace rule against BUILD_DATE preserves the installed build's
+ * verdict (and clears it after an upgrade), and isNewerThanStored
+ * catches a replaced asset under the same tag within the grace
+ * window. BUILD_DATE is therefore a first-check AND a later-check
+ * input, never the sole later-check input.
  */
-export const BUILD_DATE = "2026-11-15T01:30:00Z";
+export const BUILD_DATE = "2026-11-15T01:48:00Z";
 
 /** What a check found, as stored in chrome.storage.local. */
 export interface UpdateRecord {
@@ -235,6 +248,38 @@ export function isNewerOnFirstCheck(release: ReleaseInfo, buildDate: string, man
   return effMs - buildMs > FIRST_CHECK_GRACE_MS;
 }
 
+/**
+ * Is this release newer than the release STORED by a previous check?
+ * LATER CHECKS ONLY — see checkForUpdates. Comparing against
+ * BUILD_DATE here is WRONG: the zip asset's `updated_at` is its
+ * UPLOAD time, always minutes after the build, so it is ALWAYS later
+ * than BUILD_DATE for the currently installed build — every later
+ * check would permanently report an update pointing at the installed
+ * build itself (finding A-06, second bug, caught by the post-upload
+ * Phase B: the background first check was correctly up to date, but
+ * the Settings manual check said "a newer build is available").
+ * Instead compare against what the previous check stored:
+ *  * a different tag → newer (the release changed);
+ *  * the same tag, but the asset's updated_at differs → newer (the
+ *    asset was replaced under the same tag — exactly how dev builds
+ *    are republished);
+ *  * stored assetUpdatedAt "" and the release now HAS one → newer
+ *    (the downloadable build did not exist at the first check);
+ *  * assetUpdatedAt "" on the release side (asset removed) or both
+ *    "" (no zip asset at all) → NOT newer on the timestamp signal.
+ * The semver signal stays: a tag later than the manifest version is
+ * newer whatever the timestamps say (so an already-reported update
+ * stays reported until the user actually upgrades).
+ */
+export function isNewerThanStored(release: ReleaseInfo, stored: UpdateRecord, manifestVersion: string): boolean {
+  if (release.tag !== stored.tag) return true;
+  if (manifestVersion && compareBuildVersions(release.tag, manifestVersion) > 0) return true;
+  const now = release.assetUpdatedAt;
+  const then = stored.assetUpdatedAt;
+  if (now !== then) return now !== "";
+  return false;
+}
+
 /** Is an update available AND not dismissed? Dismiss is keyed by tag + asset updated_at. */
 export function isUpdateAvailable(record: UpdateRecord | null): boolean {
   if (!record || !record.available) return false;
@@ -344,6 +389,19 @@ function manifestVersion(): string {
  * record keeps its availability, the next check is backed off by 1h,
  * and the returned `ok` is false — callers must not turn it into a
  * banner or an error message beyond the manual-check status line.
+ *
+ * Later checks use BOTH rules, OR-ed (see the branch below): the
+ * first-check rule against BUILD_DATE (with its 2h grace) preserves
+ * the verdict about the INSTALLED build — an old build keeps
+ * reporting available, and after the user upgrades the verdict
+ * clears because BUILD_DATE moved past the asset. The stored rule
+ * (isNewerThanStored) catches what the grace window would hide: a
+ * replaced asset under the same tag, published within 2h of the
+ * build. Either rule alone is wrong: BUILD_DATE alone makes every
+ * later check self-point (A-06 second bug), and the stored rule
+ * alone forgets an old build's verdict the moment a second check
+ * runs (caught by probe23 Phase A: the banner appeared, then the
+ * manual check said "up to date").
  */
 export async function checkForUpdates(force = false): Promise<UpdateCheckResult> {
   const now = Date.now();
@@ -398,12 +456,22 @@ export async function checkForUpdates(force = false): Promise<UpdateCheckResult>
   }
   // First check ever (no release stored yet — a failed check or an
   // empty release list leaves tag ""): the 2h grace window applies.
-  // Later checks keep the plain rule, so a replaced asset after the
-  // first check is still detected via its updated_at vs BUILD_DATE.
+  // Later checks use BOTH rules, OR-ed. The grace rule against
+  // BUILD_DATE preserves the verdict about the INSTALLED build:
+  // an old build keeps reporting available on every later check,
+  // and after the user upgrades to a newer build the verdict clears
+  // (BUILD_DATE moved past the asset). The stored rule
+  // (isNewerThanStored) catches what the grace window would hide:
+  // a replaced asset under the same tag, published within 2h of the
+  // build. Either rule alone is wrong — BUILD_DATE alone makes every
+  // later check self-point (A-06 second bug), and the stored rule
+  // alone forgets an old build's verdict on the second check
+  // (probe23 Phase A caught exactly that).
   const firstCheck = !stored || !stored.tag;
+  const graceVerdict = isNewerOnFirstCheck(release, BUILD_DATE, manifestVersion());
   const available = firstCheck
-    ? isNewerOnFirstCheck(release, BUILD_DATE, manifestVersion())
-    : isNewerRelease(release, BUILD_DATE, manifestVersion());
+    ? graceVerdict
+    : graceVerdict || isNewerThanStored(release, stored, manifestVersion());
   const record: UpdateRecord = {
     ...(stored ?? emptyUpdateRecord()),
     tag: release.tag,
