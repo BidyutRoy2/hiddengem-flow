@@ -144,7 +144,7 @@
 
   <div class="card" id="viewLive" hidden>
     <h2>3 · Live Scripts — upgrade what is already published</h2>
-    <p class="sub">Reads the store index as it is right now. With a token it reads through the GitHub API; without one it reads the public jsDelivr copy (the store is a public repo). Click a script to load its current file into the upgrade form.</p>
+    <p class="sub">Reads the store index as it is right now. With a token it reads through the GitHub API; without one it reads the public copy (raw.githubusercontent first, jsDelivr as a fallback — the store is a public repo). Click a script to load its current file into the upgrade form.</p>
     <div class="row">
       <button type="button" class="primary" id="btnRefreshLive">Load live scripts</button>
       <label style="flex:2; min-width:200px;"><span>Search <small>(name or description)</small></span>
@@ -188,12 +188,12 @@
       <li>Only JavaScript userscripts can run in a browser page. A file in another language can be opened here to inspect it, but it cannot run as a script — this tool does not check the language of the code, and the store only lists userscripts.</li>
       <li>A script with no <code>@match</code> lines will run nowhere until you add some.</li>
       <li>Publishing writes to your repo with your token — the token can only do what its Contents permission allows, on the repo you picked. The first real publish is yours: this page was tested with a deliberately wrong token (which must fail plainly and publish nothing) and with no token at all (download fallback) — no real push was made from here.</li>
-      <li>jsDelivr cache clearing is best-effort: if a purge call fails, the publish itself still succeeded — Script Store may show the old index for a few minutes until the cache refreshes.</li>
+      <li>jsDelivr cache clearing is best-effort: if a purge call fails, the publish itself still succeeded — Script Store reads raw.githubusercontent first, so it shows the new index right away; only jsDelivr's own copy may lag a few minutes.</li>
       <li>GitHub's own API limits apply (a few thousand requests per hour for a token). This page makes a handful of requests per publish.</li>
     </ul>
   </div>
 
-  <p class="foot">HiddenGem Flow v1.0.0 (pre-final dev build) · Store Uploader — runs entirely on your machine. The only network requests it makes are to <code>api.github.com</code> (with your token), the public jsDelivr copy of the index (read-only, only when you load Live Scripts without a token), and <code>purge.jsdelivr.net</code> after a publish. No analytics.</p>
+  <p class="foot">HiddenGem Flow v1.0.0 (pre-final dev build) · Store Uploader — runs entirely on your machine. The only network requests it makes are to <code>api.github.com</code> (with your token), the public copy of the index (raw.githubusercontent first, jsDelivr as a fallback — read-only, only when you load Live Scripts without a token), and <code>purge.jsdelivr.net</code> after a publish. No analytics.</p>
 </main>
 
 <script>
@@ -250,6 +250,10 @@ function purgeUrl(owner, repo, branch, path) {
 
 function rawCodeUrl(owner, repo, branch, filename) {
   return "https://raw.githubusercontent.com/" + owner + "/" + repo + "/" + branch + "/scripts/" + encodeURIComponent(filename);
+}
+
+function rawIndexUrl(owner, repo, branch) {
+  return "https://raw.githubusercontent.com/" + owner + "/" + repo + "/" + branch + "/index.json";
 }
 
 function jsdelivrIndexUrl(owner, repo, branch) {
@@ -848,8 +852,12 @@ $("btnRefreshLive").addEventListener("click", async function () {
       }
       raw = file.text;
     } else {
-      /* No token: read the public copy (the store is a public repo). */
-      var res = await fetch(jsdelivrIndexUrl(cfg.owner, cfg.repo, cfg.branch));
+      /* No token: read the public copy (the store is a public repo).
+         Raw first — jsDelivr caches the @main branch→commit resolution
+         and a purge does not clear it, so its copy can stay stale long
+         after a publish while raw is already fresh (finding A-05). */
+      var res = await fetch(rawIndexUrl(cfg.owner, cfg.repo, cfg.branch));
+      if (!res.ok) res = await fetch(jsdelivrIndexUrl(cfg.owner, cfg.repo, cfg.branch));
       if (res.status === 404) {
         liveEntries = [];
         liveLoadedAt = new Date().toLocaleString();
