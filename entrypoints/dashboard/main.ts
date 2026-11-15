@@ -99,6 +99,7 @@ import {
   loadUpdateRecord,
   type UpdateRecord,
 } from "../shared/updates";
+import { mountFloatNotes, type FloatNotesHandle } from "../shared/notes-ui";
 
 declare const chrome: any;
 
@@ -166,6 +167,12 @@ function selectTab(name: string): void {
   });
   if (name === "logs") void refreshLogs();
   if (name === "scripts") void refreshScriptBridgeBanner();
+  // Notepad (finding A-09): re-read storage on every switch, mirroring
+  // the tasks fix above — a note saved from the floating window must
+  // appear here without a reload.
+  if (name === "notes") {
+    void notesHandle?.refresh();
+  }
   // LIVE TEST FIX (v1.0.1, bug #3): tasks and scripts were loaded once
   // at startup, so a task saved from the floating window (or a script
   // toggled there) never appeared in the dashboard until the page was
@@ -338,10 +345,15 @@ const selected = new Set<string>();
 // Phase 4 state that initTabs() may touch during module evaluation
 // (selectTab on a #hash calls refreshLogs / refreshScriptBridgeBanner
 // before the section declarations below run), so it lives up here.
-const VALID_TABS = ["overview", "tasks", "scripts", "store", "logs", "settings"];
+const VALID_TABS = ["overview", "tasks", "scripts", "store", "notes", "logs", "settings"];
 let currentTabName = "overview";
 let logsTimer: number | null = null;
 let bridgeHostname: string | null = null;
+// Notepad (finding A-09): the dashboard mounts the same shared notes UI
+// as the floating windows, over the same storage key. Declared up here
+// because selectTab() (called from initTabs() on a #notes hash) may
+// touch it before initNotes() runs.
+let notesHandle: FloatNotesHandle | null = null;
 
 function el<T extends HTMLElement>(id: string): T | null {
   return document.getElementById(id) as T | null;
@@ -685,12 +697,24 @@ function initTasks(): void {
   }
 }
 
+function initNotes(): void {
+  // The dashboard shows the SAME notes as the floating windows (same
+  // storage key, same list + editor, wider layout). The float's
+  // "View all in Dashboard →" opens this tab, so the second callback
+  // is a no-op here — there is nowhere else to go.
+  notesHandle = mountFloatNotes(document, () => {
+    // Already on the dashboard.
+  });
+  void notesHandle.refresh();
+}
+
 initTabs();
 initReset();
 initUpdateChecker();
 initTasks();
 initScripts();
 initStore();
+initNotes();
 initLogs();
 void loadCounts();
 

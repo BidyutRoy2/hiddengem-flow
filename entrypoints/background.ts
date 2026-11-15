@@ -554,7 +554,7 @@ export default defineBackground(() => {
   );
 
   chrome.runtime.onInstalled.addListener(() => {
-    console.info("[HiddenGem Flow] installed — v1.0.0");
+    console.info("[HiddenGem Flow] installed — v1.1.0");
     void reregisterEnabledFromStorage();
     void ensureGmRelayForEnabled();
     // Unreleased: update check on install — gated inside checkForUpdates

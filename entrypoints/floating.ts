@@ -31,7 +31,17 @@ import {
   sortTasks,
   type Task,
 } from "./shared/tasks";
-import { UPDATE_KEY, isUpdateAvailable, loadUpdateRecord } from "./shared/updates";
+import { NOTES_KEY } from "./shared/notes";
+import { mountFloatNotes } from "./shared/notes-ui";
+import {
+  FLOAT_LAYOUT_KEY,
+  effectiveDefaultTab,
+  loadFloatLayout,
+  type FloatLayout,
+  type FloatTabId,
+} from "./shared/float-layout";
+import { applyFloatLayoutToTabs, mountFloatLayoutEditor } from "./shared/float-layout-ui";
+import { RELEASES_PAGE_URL, UPDATE_KEY, isUpdateAvailable, loadUpdateRecord } from "./shared/updates";
 
 // HiddenGem Flow — floating window (Phase 4: + Smart Notification Bridge).
 //
@@ -90,8 +100,7 @@ interface Pos {
 
 const GEM_SVG = `<svg viewBox="0 0 32 32" width="20" height="20" aria-hidden="true"><path d="M16 2 28 12 16 30 4 12Z" fill="#00D084"/><path d="M16 2 22 12 16 30 10 12Z" fill="#0AAE74"/><path d="M16 2 28 12 16 12Z" fill="#5FE3B0"/><path d="M13 4C15 9 20 13 20 18s-5 8-7 10" fill="none" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/></svg>`;
 
-const GITHUB_SVG = `<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>`;
-const GITHUB_URL = "https://github.com/BidyutRoy2/hiddengem-flow-store";
+const DOWNLOAD_SVG = `<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>`;
 
 const CSS = `
 :host { all: initial; }
@@ -110,8 +119,8 @@ const CSS = `
 .hgf .dash { all: unset; cursor: pointer; text-align: center; background: #00D084; color: #06281B; font-weight: 700; padding: 9px 12px; border-radius: 9px; }
 .hgf .dash:hover { background: #19E292; }
 .hgf .foot { font-size: 11px; color: #6E8378; text-align: center; }
-.hgf .gh { display: inline-flex; align-items: center; gap: 5px; color: #9DB8AC; text-decoration: none; font-weight: 600; }
-.hgf .gh:hover { color: #00D084; }
+.hgf .download-btn { display: inline-flex; align-items: center; gap: 5px; background: #00D084; color: #06281B; text-decoration: none; font-weight: 700; font-size: 12px; padding: 6px 12px; border-radius: 999px; margin-top: 4px; }
+.hgf .download-btn:hover { background: #19E292; }
 .hgf .mini-add { all: unset; cursor: pointer; display: block; width: 100%; text-align: center; background: transparent; border: 1px solid #2A3B32; color: #E8FFF3; font-weight: 600; padding: 7px 10px; border-radius: 9px; box-sizing: border-box; }
 .hgf .mini-add:hover { border-color: #00D084; }
 .hgf .mini-form { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
@@ -163,6 +172,80 @@ const CSS = `
 .hgf .bridge-row { display: flex; gap: 6px; }
 .hgf .bridge-open { all: unset; cursor: pointer; flex: 1; text-align: center; background: #FFC24B; color: #3A2A00; font-weight: 700; padding: 6px 8px; border-radius: 7px; }
 .hgf .bridge-dismiss { all: unset; cursor: pointer; text-align: center; background: transparent; border: 1px solid #2A3B32; color: #E8FFF3; font-weight: 600; padding: 6px 10px; border-radius: 7px; }
+/* Tabs (finding A-09 — Notepad). The float shows one page at a time:
+   Daily Tasks, Scripts, or Notepad. Panels are hidden, never removed,
+   so switching tabs preserves each page's state. */
+.hgf .tabs { display: flex; gap: 6px; padding: 0 12px; }
+.hgf .tabs button { all: unset; cursor: pointer; flex: 1; text-align: center; padding: 7px 0; font-size: 12.5px; font-weight: 600; color: #9DB8AC; background: #12181A; border: 1px solid #2A3B32; border-radius: 8px; }
+.hgf .tabs button.active { color: #06281B; background: #00D084; border-color: #00D084; }
+.hgf .tabs button[hidden] { display: none; }
+.hgf .tabs button.hidden-tab { opacity: .4; }
+.hgf .panel[hidden] { display: none; }
+.hgf .edit-layout { display: block; text-align: center; margin-top: 2px; color: #9DB8AC; font-size: 12px; cursor: pointer; text-decoration: none; }
+.hgf .edit-layout:hover { color: #00D084; }
+/* Edit layout (finding A-10) — same look as the approved design mockup. */
+.hgf .layout-panel[hidden] { display: none; }
+.hgf .layout-panel h3 { margin: 0 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: #00D084; }
+.hgf .layout-hint { color: #8A9B91; font-size: 12px; margin: 0 0 10px; line-height: 1.55; }
+.hgf .layout-row { display: flex; align-items: center; gap: 10px; background: #12181A; border: 1px solid #2A3B32; border-radius: 9px; padding: 10px 11px; margin-bottom: 8px; }
+.hgf .layout-row.off { opacity: .55; }
+.hgf .layout-row.dragging { opacity: .5; }
+.hgf .layout-row.drop-before { border-top: 2px solid #00D084; }
+.hgf .layout-row.drop-after { border-bottom: 2px solid #00D084; }
+.hgf .layout-grip { color: #6E8378; font-size: 15px; letter-spacing: 1px; cursor: grab; }
+.hgf .layout-name { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 700; }
+.hgf .layout-name small { display: block; font-size: 11px; color: #6E8378; font-weight: 400; margin-top: 1px; }
+.hgf .layout-eye, .hgf .layout-star { all: unset; cursor: pointer; font-size: 17px; padding: 2px 4px; }
+.hgf .layout-star { color: #6E8378; }
+.hgf .layout-star.on { color: #FFC24B; }
+.hgf .layout-save-row { display: flex; gap: 8px; margin-top: 12px; }
+.hgf .layout-save { all: unset; cursor: pointer; flex: 1; text-align: center; background: #00D084; color: #06281B; font-weight: 700; padding: 9px 10px; border-radius: 9px; }
+.hgf .layout-save:hover { background: #19E292; }
+.hgf .layout-cancel { all: unset; cursor: pointer; text-align: center; background: transparent; border: 1px solid #2A3B32; color: #E8FFF3; font-weight: 600; padding: 9px 12px; border-radius: 9px; }
+/* Notepad (finding A-09) — same look as the approved design mockup. */
+.hgf .note-search { all: unset; box-sizing: border-box; width: 100%; background: #0A0F0D; border: 1px solid #2A3B32; border-radius: 8px; color: #E8FFF3; padding: 7px 9px; font-size: 13px; }
+.hgf .note-search:focus { border-color: #00D084; }
+.hgf .note-new { all: unset; cursor: pointer; display: block; width: 100%; box-sizing: border-box; text-align: center; background: #00D084; color: #06281B; font-weight: 700; padding: 8px 10px; border-radius: 9px; margin: 8px 0 10px; }
+.hgf .note-new:hover { background: #19E292; }
+.hgf .note-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
+.hgf .note { background: #12181A; border: 1px solid #2A3B32; border-radius: 10px; padding: 9px 10px; }
+.hgf .note.pinned { border-color: #FFC24B; }
+.hgf .note-top { display: flex; align-items: center; gap: 6px; }
+.hgf .note-pin-mark { color: #FFC24B; font-size: 12px; }
+.hgf .note-title { font-weight: 700; font-size: 13.5px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hgf .brand { font-size: 10.5px; font-weight: 700; letter-spacing: .4px; color: #FFC24B; border: 1px solid #FFC24B; border-radius: 20px; padding: 2px 7px; white-space: nowrap; }
+.hgf .brand.gem { color: #00D084; border-color: #00D084; }
+.hgf .note-tags { display: flex; flex-wrap: wrap; gap: 5px; margin: 7px 0 6px; }
+.hgf .note-tag { font-size: 11px; color: #9FD8B8; background: #0A0F0D; border: 1px solid #2A3F33; border-radius: 20px; padding: 2px 8px; }
+.hgf .note-body { font-size: 12.5px; line-height: 1.5; color: #C9DCD2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+.hgf .note-foot { display: flex; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #1B2620; }
+.hgf .note-meta { font-size: 11px; color: #6E8378; flex: 1; }
+.hgf .note-acts { display: flex; gap: 2px; }
+.hgf .note-act { all: unset; cursor: pointer; color: #9DB8AC; font-size: 14px; padding: 4px 6px; border-radius: 6px; }
+.hgf .note-act:hover { background: #1E2A24; color: #E8FFF3; }
+.hgf .note-act.on { color: #FFC24B; }
+.hgf .note-act.del:hover { color: #FF9A8A; }
+.hgf .note-act.armed { background: #3A1512; color: #FF9A8A; font-size: 11px; font-weight: 700; padding: 4px 8px; }
+.hgf .note-count { font-size: 12px; color: #8A9B91; text-align: center; margin: 2px 0 10px; }
+.hgf .note-count[hidden] { display: none; }
+.hgf .note-editor[hidden] { display: none; }
+.hgf .note-editor label { display: block; font-size: 12px; font-weight: 600; color: #9DB8AC; margin: 10px 0 5px; }
+.hgf .note-editor label:first-child { margin-top: 0; }
+.hgf .note-title-in, .hgf .note-body-in { all: unset; box-sizing: border-box; width: 100%; background: #0A0F0D; border: 1px solid #2A3B32; border-radius: 8px; color: #E8FFF3; padding: 8px 9px; font-size: 13px; }
+.hgf .note-title-in:focus, .hgf .note-body-in:focus { border-color: #00D084; }
+.hgf .note-body-in { height: 110px; line-height: 1.55; resize: none; font-family: inherit; }
+.hgf .brand-row { display: flex; gap: 6px; }
+.hgf .brand-pick { all: unset; cursor: pointer; flex: 1; text-align: center; padding: 7px 0; font-size: 12px; font-weight: 700; border-radius: 20px; border: 1px solid #2A3B32; color: #9DB8AC; background: #12181A; }
+.hgf .brand-pick.sel-gem { color: #00D084; border-color: #00D084; background: #0A0F0D; }
+.hgf .brand-pick.sel-gold { color: #FFC24B; border-color: #FFC24B; background: #0A0F0D; }
+.hgf .tag-edit { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.hgf .tag-edit .note-tag { cursor: pointer; }
+.hgf .tag-add { all: unset; box-sizing: border-box; background: #0A0F0D; border: 1px dashed #2A3F33; color: #9DB8AC; border-radius: 20px; padding: 3px 8px; font-size: 11px; width: 92px; }
+.hgf .note-save-row { display: flex; gap: 8px; margin-top: 12px; }
+.hgf .note-save { all: unset; cursor: pointer; flex: 1; text-align: center; background: #00D084; color: #06281B; font-weight: 700; padding: 9px 10px; border-radius: 9px; }
+.hgf .note-save:hover { background: #19E292; }
+.hgf .note-cancel { all: unset; cursor: pointer; text-align: center; background: transparent; border: 1px solid #2A3B32; color: #E8FFF3; font-weight: 600; padding: 9px 12px; border-radius: 9px; }
+.hgf .note-local { text-align: center; font-size: 11px; color: #6E8378; margin-top: 10px; }
 `; 
 
 function clampPos(pos: Pos): Pos {
@@ -599,7 +682,7 @@ function buildWindow(): HTMLElement {
     try {
       chrome.storage.onChanged.addListener((changes: Record<string, { newValue?: unknown }>, areaName: string) => {
         if (areaName !== "local") return;
-        if (changes[TASKS_KEY] || changes[SCRIPTS_KEY] || changes[SCRIPT_ERRORS_KEY] || changes[UPDATE_KEY]) {
+        if (changes[TASKS_KEY] || changes[SCRIPTS_KEY] || changes[SCRIPT_ERRORS_KEY] || changes[UPDATE_KEY] || changes[NOTES_KEY] || changes[FLOAT_LAYOUT_KEY]) {
           runFloatingRefreshers();
         }
       });
@@ -635,7 +718,12 @@ function buildWindow(): HTMLElement {
         </div>
       </div>
       <div class="site" data-site></div>
-      <section>
+      <div class="tabs" data-tabs>
+        <button type="button" data-float-tab="tasks" class="active">Daily Tasks</button>
+        <button type="button" data-float-tab="scripts">Scripts</button>
+        <button type="button" data-float-tab="notes">Notepad</button>
+      </div>
+      <section class="panel" data-panel="tasks">
         <h3>Daily Tasks</h3>
         <button type="button" class="mini-add" data-act="add-current">＋ Add current site</button>
         <div class="mini-form" data-form="add-task" hidden>
@@ -653,7 +741,7 @@ function buildWindow(): HTMLElement {
         <p class="open-status" data-status="open" hidden></p>
         <a class="view-all" data-act="view-all">View all in Dashboard →</a>
       </section>
-      <section>
+      <section class="panel" data-panel="scripts" hidden>
         <h3>Active Scripts</h3>
         <div class="us-status" data-us-status>
           <span data-us-text>User Scripts: checking…</span>
@@ -664,8 +752,43 @@ function buildWindow(): HTMLElement {
         <p class="empty" data-empty="scripts">No scripts installed yet.</p>
         <p class="script-note" data-note="scripts" hidden></p>
       </section>
+      <section class="panel" data-panel="notes" hidden>
+        <h3>Notepad</h3>
+        <div data-notes-list-view>
+          <input type="text" class="note-search" data-notes-search placeholder="Search notes… (title, text, or tag)" autocomplete="off" aria-label="Search notes" />
+          <button type="button" class="note-new" data-notes-new>＋ New note</button>
+          <ul class="note-list" data-notes-list></ul>
+          <p class="empty" data-notes-empty>No notes yet — tap + New note to write your first one.</p>
+          <p class="note-count" data-notes-count hidden></p>
+          <a class="view-all" data-notes-viewall>View all in Dashboard →</a>
+        </div>
+        <div class="note-editor" data-notes-editor hidden>
+          <h3 data-notes-editor-title>New note</h3>
+          <label>Title</label>
+          <input type="text" class="note-title-in" data-notes-title placeholder="Title" autocomplete="off" maxlength="120" aria-label="Note title" />
+          <label>Note</label>
+          <textarea class="note-body-in" data-notes-body rows="5" placeholder="Write it down…" aria-label="Note text"></textarea>
+          <label>Brand</label>
+          <div class="brand-row" data-notes-brand>
+            <button type="button" class="brand-pick" data-brand="HiddenGem">◆ HiddenGem</button>
+            <button type="button" class="brand-pick" data-brand="Personal">Personal</button>
+            <button type="button" class="brand-pick" data-brand="Work">Work</button>
+          </div>
+          <label>Tags</label>
+          <div class="tag-edit" data-notes-tags>
+            <input type="text" class="tag-add" data-notes-tag-input placeholder="+ add a tag" autocomplete="off" maxlength="20" aria-label="Add a tag" />
+          </div>
+          <div class="note-save-row">
+            <button type="button" class="note-save" data-notes-save>Save note</button>
+            <button type="button" class="note-cancel" data-notes-cancel>Cancel</button>
+          </div>
+          <p class="note-local">Saved on this browser only — notes never leave your computer.</p>
+        </div>
+      </section>
+      <div class="layout-panel" data-layout-panel hidden></div>
+      <a class="edit-layout" data-act="edit-layout">✎ Edit layout</a>
       <button type="button" class="dash">Open Dashboard</button>
-      <div class="foot">HiddenGem Flow v1.0.0<br><a class="gh" href="${GITHUB_URL}" target="_blank" rel="noopener noreferrer">${GITHUB_SVG} GitHub — hiddengem-flow-store</a></div>
+      <div class="foot">HiddenGem Flow v1.1.0<br><a class="download-btn" href="${RELEASES_PAGE_URL}" target="_blank" rel="noopener noreferrer" title="Download the latest HiddenGem Flow build">${DOWNLOAD_SVG} Download HiddenGem Flow</a></div>
     </div>
   `;
   shadow.appendChild(win);
@@ -749,6 +872,66 @@ function buildWindow(): HTMLElement {
 
   // --- Extension update line (Unreleased) ---
   void initFloatingUpdate(win);
+
+  // --- Tabs + Notepad (finding A-09) + Edit layout (finding A-10) ---
+  // One page at a time; panels are hidden, never removed, so switching
+  // tabs preserves each page's state (an open editor, a search query,
+  // an armed delete) instead of rebuilding it. The tab order, hidden
+  // tabs and default tab come from the stored layout (finding A-10);
+  // the default when nothing is stored is Daily Tasks, as before.
+  let currentLayout: FloatLayout = { order: ["tasks", "scripts", "notes"], hidden: [], defaultTab: "tasks" };
+  let currentFloatTab: FloatTabId = "tasks";
+  let layoutEditing = false;
+  const tabBtns = Array.from(win.querySelectorAll<HTMLElement>("[data-float-tab]"));
+  function selectFloatTab(name: string): void {
+    currentFloatTab = name as FloatTabId;
+    tabBtns.forEach((b) => b.classList.toggle("active", b.dataset.floatTab === name));
+    win.querySelectorAll<HTMLElement>("[data-panel]").forEach((p) => {
+      p.hidden = layoutEditing || p.dataset.panel !== name;
+    });
+    const layoutPanel = win.querySelector<HTMLElement>("[data-layout-panel]");
+    if (layoutPanel) layoutPanel.hidden = !layoutEditing;
+  }
+  function renderFloatTabs(): void {
+    const active = applyFloatLayoutToTabs(win, currentLayout, currentFloatTab, layoutEditing);
+    selectFloatTab(active);
+  }
+  tabBtns.forEach((b) =>
+    b.addEventListener("click", () => {
+      // While editing, tab clicks are ignored — exit via Save/Cancel
+      // so edits are never discarded by accident.
+      if (layoutEditing) return;
+      selectFloatTab(b.dataset.floatTab ?? "tasks");
+    }),
+  );
+  const notesHandle = mountFloatNotes(win, () => {
+    void chrome.runtime.sendMessage({ type: "hiddengemflow:open-dashboard", tab: "notes" });
+  });
+  floatingRefreshers.push(notesHandle.refresh);
+  const layoutHandle = mountFloatLayoutEditor(win, {
+    onOpen: () => {
+      layoutEditing = true;
+      renderFloatTabs();
+    },
+    onClose: (applied, saved) => {
+      layoutEditing = false;
+      if (applied) {
+        currentLayout = saved;
+        currentFloatTab = effectiveDefaultTab(saved);
+      }
+      renderFloatTabs();
+    },
+    onExternalChange: (changed) => {
+      currentLayout = changed;
+      renderFloatTabs();
+    },
+  });
+  floatingRefreshers.push(layoutHandle.refresh);
+  void loadFloatLayout().then((loaded) => {
+    currentLayout = loaded;
+    currentFloatTab = effectiveDefaultTab(loaded);
+    renderFloatTabs();
+  });
 
   // Restore saved position, then show.
   void loadPos().then((pos) => {

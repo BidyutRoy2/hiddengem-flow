@@ -5,7 +5,7 @@
 <p align="center"><strong>Your daily task websites and userscripts, one flow.</strong></p>
 
 <p align="center">
-  <a href="https://github.com/BidyutRoy2/hiddengem-flow"><img src="https://img.shields.io/badge/version-1.0.0%20pre--final-blue" alt="Version 1.0.0 pre-final"></a>
+  <a href="https://github.com/BidyutRoy2/hiddengem-flow"><img src="https://img.shields.io/badge/version-1.1.0-blue" alt="Version 1.1.0"></a>
   <img src="https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white" alt="Chrome Manifest V3">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">
   <img src="https://img.shields.io/badge/data-local--first-00D084" alt="Local-first, no tracking">
@@ -20,12 +20,12 @@
 
 ## Download — ready to install
 
-**[⬇ Download the extension (pre-release v1.0.0-dev-20261115)](https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v1.0.0-dev-20261115)** — get `hiddengem-flow-extension.zip`, extract it, then:
+**[⬇ Download the extension (pre-release v1.1.0-dev-20261115)](https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v1.1.0-dev-20261115)** — get `hiddengem-flow-extension.zip`, extract it, then:
 
 1. Open `chrome://extensions` (or `brave://extensions`) → turn on **Developer mode**.
 2. Click **Load unpacked** and select the extracted folder.
 
-That's it — the floating window and dashboard are ready. Two grants are still needed before any userscript runs (see [Install](#install-load-unpacked)): turn **Allow User Scripts** ON in the extension's Details page, then **Grant site access** for each script's site. This is a pre-final dev build; the final release will also be v1.0.0, the first version.
+That's it — the floating window and dashboard are ready. Two grants are still needed before any userscript runs (see [Install](#install-load-unpacked)): turn **Allow User Scripts** ON in the extension's Details page, then **Grant site access** for each script's site. This is a dev build of v1.1.0 — the new version after the final v1.0.0.
 
 ### Watch: install in 60 seconds
 
@@ -82,6 +82,8 @@ Screenshots are from the live test in real Chrome — see [`docs/LIVE_TEST_AUDIT
 - **Script Store** — the official store lives in the public repo [`BidyutRoy2/hiddengem-flow-store`](https://github.com/BidyutRoy2/hiddengem-flow-store) and is fetched through raw.githubusercontent first, jsDelivr as a fallback. Search, sort by Recently updated / Latest / Name, and install any script only after a scan + your confirm. Nothing installs itself, nothing is fetched until you click **Load store**.
 - **Smart Notification Bridge** — if the site you're on already has an official script, a dismissible banner says so and offers it in one click from the Script Store.
 - **Multi-tab Logs** — every tab the extension opens gets a run entry (Queued → Running → Done) with the scripts that match it, and **Stop All** closes only the tabs this extension opened.
+- **Notepad** — quick local notes in the floating window and in a 7th Dashboard tab, the same notes in both. Search as you type; brand each note (HiddenGem / Personal / Work); add up to 10 tags; pin to the top; copy the note as “title\nbody”; edit, or delete with a two-step confirm. Notes live in this browser only — no server, no sync. Empty title falls back to the first line of the note, or “Untitled note”.
+- **Edit layout** — the floating window's **✎ Edit layout** link opens a panel where you drag ⋮⋮ to reorder the pages, tap the eye to hide or show a page, and tap the star to pick the page that opens first. Save applies it at once; Cancel discards it. A hidden page is unreachable from the tab bar until you restore it from Edit layout. The layout is saved in this browser only and applies to both floating windows; the Dashboard always shows all 7 tabs.
 
 ## Publish scripts with the private Store Uploader
 
@@ -174,7 +176,7 @@ docs/                      # audit, live-test audit, live-test screenshots
 
 ## Status
 
-**v1.0.0 — pre-final dev build.** All phases are built, deep-audited and live click-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`). The final release will also be v1.0.0, the first version — there are no version bumps until then. Firefox comes later, after Chrome is proven.
+**v1.1.0 — tabs, working Notepad and Edit layout.** v1.0.0 was the final first version. All phases are built, deep-audited and live click-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`). Firefox comes later, after Chrome is proven.
 
 ## License
 

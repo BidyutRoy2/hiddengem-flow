@@ -12,11 +12,15 @@
       <img class="wordmark" src="/logo-v2-wordmark.png" alt="HiddenGem Flow — emerald gem with gold flow" />
       <div class="top-text">
         <h1>HiddenGem Flow</h1>
-        <p>Your daily tasks and scripts, one flow. v1.0.0</p>
+        <p>Your daily tasks and scripts, one flow. v1.1.0</p>
       </div>
-      <a class="github-btn" href="https://github.com/BidyutRoy2/hiddengem-flow-store" target="_blank" rel="noopener noreferrer" title="Official Script Store on GitHub — BidyutRoy2/hiddengem-flow-store">
+      <a class="telegram-btn" href="https://t.me/hiddengemnews" target="_blank" rel="noopener noreferrer" title="Join HiddenGem on Telegram — t.me/hiddengemnews">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+        <span><strong>Join Telegram</strong><small>t.me/hiddengemnews</small></span>
+      </a>
+      <a class="github-btn" href="https://github.com/BidyutRoy2/hiddengem-flow" target="_blank" rel="noopener noreferrer" title="HiddenGem Flow on GitHub — BidyutRoy2/hiddengem-flow">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
-        <span><strong>GitHub</strong><small>BidyutRoy2/hiddengem-flow-store</small></span>
+        <span><strong>GitHub</strong><small>BidyutRoy2/hiddengem-flow</small></span>
       </a>
     </header>
 
@@ -25,6 +29,7 @@
       <button class="tab" data-tab="tasks" role="tab" aria-selected="false">Daily Tasks</button>
       <button class="tab" data-tab="scripts" role="tab" aria-selected="false">Scripts</button>
       <button class="tab" data-tab="store" role="tab" aria-selected="false">Script Store</button>
+      <button class="tab" data-tab="notes" role="tab" aria-selected="false">Notepad</button>
       <button class="tab" data-tab="logs" role="tab" aria-selected="false">Logs</button>
       <button class="tab" data-tab="settings" role="tab" aria-selected="false">Settings</button>
     </nav>
@@ -35,7 +40,7 @@
           <p id="updateBannerText"></p>
           <p id="updateHowTo" class="hint" hidden>How to update: 1. Click <b>Download the new build</b> and unzip it. 2. In your unpacked extension folder, replace all files with the new ones. 3. Open <code>chrome://extensions</code> and press <b>Reload</b> on HiddenGem Flow. Do not remove the extension — removing deletes your saved tasks and scripts.</p>
           <div class="row">
-            <a id="updateDownload" class="primary" href="https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v1.0.0-dev-20261115" target="_blank" rel="noopener noreferrer">Download the new build</a>
+            <a id="updateDownload" class="primary" href="https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v1.1.0-dev-20261115" target="_blank" rel="noopener noreferrer">Download the new build</a>
             <button id="updateHowToBtn" type="button" class="secondary">How to update</button>
             <button id="updateDismissBtn" type="button" class="secondary">Dismiss</button>
           </div>
@@ -46,7 +51,7 @@
             <dl class="stats">
               <div><dt>Saved task sites</dt><dd id="stat-tasks">0</dd></div>
               <div><dt>Installed scripts</dt><dd id="stat-scripts">0</dd></div>
-              <div><dt>Extension</dt><dd>v1.0.0</dd></div>
+              <div><dt>Extension</dt><dd>v1.1.0</dd></div>
               <div><dt>Platform</dt><dd>Chrome MV3</dd></div>
             </dl>
             <p class="hint">These are live counts from extension storage — 0 because nothing has been saved yet. Nothing here is demo data.</p>
@@ -58,7 +63,7 @@
           </div>
           <div class="card">
             <h2>What this extension does</h2>
-            <p><strong>Daily Tasks</strong> — save the sites you open every day and open them all in one click. <strong>Scripts</strong> — a userscript manager: write or import scripts, scan them, and run them on the sites they match. <strong>Script Store</strong> — the Official Store on GitHub: load it, search it, install a script with one confirm. <strong>Logs</strong> — per-tab status for every tab the extension opens, with Stop All.</p>
+            <p><strong>Daily Tasks</strong> — save the sites you open every day and open them all in one click. <strong>Scripts</strong> — a userscript manager: write or import scripts, scan them, and run them on the sites they match. <strong>Script Store</strong> — the Official Store on GitHub: load it, search it, install a script with one confirm. <strong>Notepad</strong> — quick local notes with brand, tags, pin and search — the same notes as the floating window. <strong>Logs</strong> — per-tab status for every tab the extension opens, with Stop All.</p>
           </div>
           <div class="card">
             <h2>Official Script Store on GitHub</h2>
@@ -268,6 +273,42 @@
         </div>
       </section>
 
+      <section id="panel-notes" class="panel">
+        <div class="card">
+          <h2>Notepad</h2>
+          <p>Quick notes that live in this browser only — no server, no sync, no signup. Pinned notes stay on top. The same notes show in the floating window's Notepad page, and the floating window's "View all in Dashboard →" opens this tab.</p>
+          <div data-notes-list-view>
+            <input type="text" class="note-search" data-notes-search placeholder="Search notes… (title, text, or tag)" autocomplete="off" aria-label="Search notes" />
+            <button type="button" class="note-new" data-notes-new>＋ New note</button>
+            <ul class="note-list" data-notes-list></ul>
+            <p class="empty" data-notes-empty>No notes yet — tap + New note to write your first one.</p>
+            <p class="note-count" data-notes-count hidden></p>
+          </div>
+          <div class="note-editor" data-notes-editor hidden>
+            <h3 data-notes-editor-title>New note</h3>
+            <label>Title</label>
+            <input type="text" class="note-title-in" data-notes-title placeholder="Title" autocomplete="off" maxlength="120" aria-label="Note title" />
+            <label>Note</label>
+            <textarea class="note-body-in" data-notes-body rows="5" placeholder="Write it down…" aria-label="Note text"></textarea>
+            <label>Brand</label>
+            <div class="brand-row" data-notes-brand>
+              <button type="button" class="brand-pick" data-brand="HiddenGem">◆ HiddenGem</button>
+              <button type="button" class="brand-pick" data-brand="Personal">Personal</button>
+              <button type="button" class="brand-pick" data-brand="Work">Work</button>
+            </div>
+            <label>Tags</label>
+            <div class="tag-edit" data-notes-tags>
+              <input type="text" class="tag-add" data-notes-tag-input placeholder="+ add a tag" autocomplete="off" maxlength="20" aria-label="Add a tag" />
+            </div>
+            <div class="note-save-row">
+              <button type="button" class="note-save" data-notes-save>Save note</button>
+              <button type="button" class="note-cancel" data-notes-cancel>Cancel</button>
+            </div>
+            <p class="note-local">Saved on this browser only — notes never leave your computer.</p>
+          </div>
+        </div>
+      </section>
+
       <section id="panel-logs" class="panel">
         <div class="card">
           <div class="row script-list-head">
@@ -294,6 +335,8 @@
             <li><code>hiddengemflow.bridge.dismissed.v1</code> — hostnames where the store bridge banner was dismissed (Phase 4)</li>
             <li><code>hiddengemflow.runs.v1</code> — multi-tab run log, last 50 runs (Phase 4)</li>
             <li><code>hiddengemflow.update.v1</code> — latest release check result + when it was checked (update checker)</li>
+            <li><code>hiddengemflow.notes.v1</code> — saved notes (Notepad)</li>
+            <li><code>hiddengemflow.float.layout.v1</code> — floating window tab order, hidden tabs and default tab (Edit layout)</li>
           </ul>
           <div class="row">
             <button id="resetPos" class="secondary">Reset floating window position</button>
@@ -318,7 +361,7 @@
       </section>
     </main>
 
-    <footer>HiddenGem Flow v1.0.0 · MIT · Open source · <a class="gh-link" href="https://github.com/BidyutRoy2/hiddengem-flow-store" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg> GitHub — hiddengem-flow-store</a> — <span id="footCount"></span></footer>
+    <footer><span>HiddenGem Flow v1.1.0 · MIT · Open source — <span id="footCount"></span></span><a class="download-btn" href="https://github.com/BidyutRoy2/hiddengem-flow/releases" target="_blank" rel="noopener noreferrer" title="Download the latest HiddenGem Flow build from GitHub Releases"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Download HiddenGem Flow</a></footer>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

@@ -41,7 +41,12 @@ export const MSG_CHECK_UPDATES = "hiddengemflow:check-updates";
 export const RELEASES_URL = "https://api.github.com/repos/BidyutRoy2/hiddengem-flow/releases";
 export const RELEASE_ZIP_ASSET = "hiddengem-flow-extension.zip";
 /** Pre-release page — the distribution channel for unpacked builds. */
-export const RELEASE_PAGE_URL = "https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v1.0.0-dev-20261115";
+export const RELEASE_PAGE_URL = "https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v1.1.0-dev-20261115";
+
+/** The releases list page — always live, newest build on top. The footer
+ *  Download button points here (not at one tag), so it works before a new
+ *  release is published and after. */
+export const RELEASES_PAGE_URL = "https://github.com/BidyutRoy2/hiddengem-flow/releases";
 
 export const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
 export const RETRY_AFTER_MS = 60 * 60 * 1000; // 1 hour after a failed check
@@ -88,11 +93,11 @@ export const FIRST_CHECK_GRACE_MS = 2 * 60 * 60 * 1000;
  * window. BUILD_DATE is therefore a first-check AND a later-check
  * input, never the sole later-check input.
  */
-export const BUILD_DATE = "2026-11-15T01:48:00Z";
+export const BUILD_DATE = "2026-11-15T05:27:00Z";
 
 /** What a check found, as stored in chrome.storage.local. */
 export interface UpdateRecord {
-  /** Release tag, e.g. "v1.0.0-dev-20261115". "" when no release exists yet. */
+  /** Release tag, e.g. "v1.1.0-dev-20261115". "" when no release exists yet. */
   tag: string;
   /** Release published_at (ISO). "" when unknown. */
   publishedAt: string;

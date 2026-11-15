@@ -19,6 +19,16 @@ import {
   type Task,
 } from "../shared/tasks";
 import { UPDATE_KEY, isUpdateAvailable, loadUpdateRecord } from "../shared/updates";
+import { NOTES_KEY } from "../shared/notes";
+import { mountFloatNotes } from "../shared/notes-ui";
+import {
+  FLOAT_LAYOUT_KEY,
+  effectiveDefaultTab,
+  loadFloatLayout,
+  type FloatLayout,
+  type FloatTabId,
+} from "../shared/float-layout";
+import { applyFloatLayoutToTabs, mountFloatLayoutEditor } from "../shared/float-layout-ui";
 
 // HiddenGem Flow — standalone floating window page (v1.0.2, float.html).
 //
@@ -41,8 +51,6 @@ import { UPDATE_KEY, isUpdateAvailable, loadUpdateRecord } from "../shared/updat
 // page-specific, because the page DOM is not a Shadow DOM.
 
 declare const chrome: any;
-
-const GITHUB_URL = "https://github.com/BidyutRoy2/hiddengem-flow-store";
 
 function q<T extends HTMLElement>(sel: string): T | null {
   return document.querySelector(sel) as T | null;
@@ -249,7 +257,79 @@ function refreshAll(): void {
   void renderUpdateLine().catch(() => {
     // Same as above.
   });
+  void notesHandle?.refresh().catch(() => {
+    // Same as above.
+  });
+  void layoutHandle?.refresh().catch(() => {
+    // Same as above.
+  });
 }
+
+// --- Tabs + Notepad (finding A-09) + Edit layout (finding A-10) ---
+// One page at a time; panels are hidden, never removed, so switching
+// tabs preserves each page's state. The tab order, hidden tabs and
+// default tab come from the stored layout (finding A-10); the default
+// when nothing is stored is Daily Tasks, as before.
+let currentLayout: FloatLayout = { order: ["tasks", "scripts", "notes"], hidden: [], defaultTab: "tasks" };
+let currentFloatTab: FloatTabId = "tasks";
+let layoutEditing = false;
+
+function selectFloatTab(name: string): void {
+  currentFloatTab = name as FloatTabId;
+  document.querySelectorAll<HTMLElement>("[data-float-tab]").forEach((b) => {
+    b.classList.toggle("active", b.dataset.floatTab === name);
+  });
+  document.querySelectorAll<HTMLElement>("[data-panel]").forEach((p) => {
+    p.hidden = layoutEditing || p.dataset.panel !== name;
+  });
+  const layoutPanel = q<HTMLElement>("[data-layout-panel]");
+  if (layoutPanel) layoutPanel.hidden = !layoutEditing;
+}
+
+function renderFloatTabs(): void {
+  const active = applyFloatLayoutToTabs(document, currentLayout, currentFloatTab, layoutEditing);
+  selectFloatTab(active);
+}
+
+document.querySelectorAll<HTMLElement>("[data-float-tab]").forEach((b) => {
+  b.addEventListener("click", () => {
+    // While editing, tab clicks are ignored — exit via Save/Cancel
+    // so edits are never discarded by accident.
+    if (layoutEditing) return;
+    selectFloatTab(b.dataset.floatTab ?? "tasks");
+  });
+});
+
+const notesHandle = mountFloatNotes(document, () => {
+  void chrome.runtime.sendMessage({ type: "hiddengemflow:open-dashboard", tab: "notes" }).catch(() => {
+    // Dashboard open failed — nothing else to do from here.
+  });
+});
+
+const layoutHandle = mountFloatLayoutEditor(document, {
+  onOpen: () => {
+    layoutEditing = true;
+    renderFloatTabs();
+  },
+  onClose: (applied, saved) => {
+    layoutEditing = false;
+    if (applied) {
+      currentLayout = saved;
+      currentFloatTab = effectiveDefaultTab(saved);
+    }
+    renderFloatTabs();
+  },
+  onExternalChange: (changed) => {
+    currentLayout = changed;
+    renderFloatTabs();
+  },
+});
+
+void loadFloatLayout().then((loaded) => {
+  currentLayout = loaded;
+  currentFloatTab = effectiveDefaultTab(loaded);
+  renderFloatTabs();
+});
 
 // --- Buttons ---
 q<HTMLButtonElement>('[data-act="close"]')?.addEventListener("click", () => {
@@ -345,7 +425,7 @@ window.addEventListener("focus", () => {
 try {
   chrome.storage.onChanged.addListener((changes: Record<string, { newValue?: unknown }>, areaName: string) => {
     if (areaName !== "local") return;
-    if (changes[TASKS_KEY] || changes[SCRIPTS_KEY] || changes[SCRIPT_ERRORS_KEY] || changes[UPDATE_KEY]) {
+    if (changes[TASKS_KEY] || changes[SCRIPTS_KEY] || changes[SCRIPT_ERRORS_KEY] || changes[UPDATE_KEY] || changes[NOTES_KEY] || changes[FLOAT_LAYOUT_KEY]) {
       refreshAll();
     }
   });
@@ -355,7 +435,5 @@ try {
 
 void refreshAll();
 
-// Keep the GitHub URL in one place for the footer link check (the href
-// itself lives in index.html); referenced here so a future URL change
-// has a single obvious spot to update alongside it.
-void GITHUB_URL;
+// The footer Download button's href lives in index.html (releases page);
+// nothing in this file needs the URL.

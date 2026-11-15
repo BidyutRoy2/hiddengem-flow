@@ -58,6 +58,23 @@ body {
 .github-btn span { display: flex; flex-direction: column; line-height: 1.25; text-align: left; }
 .github-btn small { color: var(--muted); font-size: 12px; }
 
+.telegram-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 9px 14px;
+  color: var(--text);
+  text-decoration: none;
+}
+.telegram-btn:hover { border-color: #229ED9; }
+.telegram-btn svg { color: #229ED9; }
+.telegram-btn span { display: flex; flex-direction: column; line-height: 1.25; text-align: left; }
+.telegram-btn small { color: var(--muted); font-size: 12px; }
+
 .gh-link {
   display: inline-flex;
   align-items: center;
@@ -164,11 +181,34 @@ code {
 }
 
 footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   padding: 16px 28px 24px;
   color: var(--dim);
   font-size: 13px;
   border-top: 1px solid var(--line);
 }
+
+/* Footer download button — the releases page always lists the newest
+ * build first, so this one link is the download entry point. */
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--primary);
+  color: #06281c;
+  font-weight: 700;
+  font-size: 13.5px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  text-decoration: none;
+  box-shadow: 0 2px 10px rgba(0, 208, 132, 0.25);
+}
+
+.download-btn:hover { background: #19e292; }
 
 /* --- Daily Tasks (Phase 2) --- */
 
@@ -723,3 +763,70 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .status-badge.status-done { background: #123b2c; color: var(--primary); }
 .status-badge.status-failed { background: #3a0d08; color: #ff9a8a; }
 .status-badge.status-stopped { background: #2a1f0a; color: var(--gold); }
+
+/* Notepad (finding A-09) — the same notes as the floating windows,
+   same class names as the float CSS, wider layout here. */
+#panel-notes .note-search {
+  box-sizing: border-box; width: 100%; background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; color: var(--text); padding: 9px 11px; font-size: 14px;
+}
+#panel-notes .note-search:focus { border-color: var(--primary); outline: none; }
+#panel-notes .note-new {
+  cursor: pointer; display: block; width: 100%; box-sizing: border-box; text-align: center;
+  background: var(--primary); color: #06281b; font-weight: 700; padding: 10px; border-radius: 9px;
+  margin: 10px 0 12px; border: none; font-size: 14px;
+}
+#panel-notes .note-new:hover { background: #19e292; }
+#panel-notes .note-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+#panel-notes .note { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+#panel-notes .note.pinned { border-color: var(--gold); }
+#panel-notes .note-top { display: flex; align-items: center; gap: 8px; }
+#panel-notes .note-pin-mark { color: var(--gold); font-size: 13px; }
+#panel-notes .note-title { font-weight: 700; font-size: 15px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#panel-notes .brand { font-size: 11px; font-weight: 700; letter-spacing: .4px; color: var(--gold); border: 1px solid var(--gold); border-radius: 20px; padding: 2px 8px; white-space: nowrap; }
+#panel-notes .brand.gem { color: var(--primary); border-color: var(--primary); }
+#panel-notes .note-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 9px 0 7px; }
+#panel-notes .note-tag { font-size: 12px; color: #9fd8b8; background: var(--card); border: 1px solid #2a3f33; border-radius: 20px; padding: 2px 9px; }
+#panel-notes .note-body { font-size: 14px; line-height: 1.55; color: #c9dcd2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+#panel-notes .note-foot { display: flex; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #1b2620; }
+#panel-notes .note-meta { font-size: 12px; color: var(--dim); flex: 1; }
+#panel-notes .note-acts { display: flex; gap: 2px; }
+#panel-notes .note-act { cursor: pointer; color: var(--muted); font-size: 15px; padding: 4px 7px; border-radius: 6px; background: none; border: none; }
+#panel-notes .note-act:hover { background: #1e2a24; color: var(--text); }
+#panel-notes .note-act.on { color: var(--gold); }
+#panel-notes .note-act.del:hover { color: #ff9a8a; }
+#panel-notes .note-act.armed { background: #3a1512; color: #ff9a8a; font-size: 12px; font-weight: 700; padding: 4px 9px; }
+#panel-notes .note-count { font-size: 13px; color: var(--muted); text-align: center; margin: 4px 0 12px; }
+#panel-notes .note-count[hidden] { display: none; }
+#panel-notes .note-editor[hidden] { display: none; }
+#panel-notes .note-editor label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 12px 0 6px; }
+#panel-notes .note-title-in, #panel-notes .note-body-in {
+  box-sizing: border-box; width: 100%; background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; color: var(--text); padding: 10px 11px; font-size: 14px;
+}
+#panel-notes .note-title-in:focus, #panel-notes .note-body-in:focus { border-color: var(--primary); outline: none; }
+#panel-notes .note-body-in { height: 140px; line-height: 1.6; resize: vertical; font-family: inherit; }
+#panel-notes .brand-row { display: flex; gap: 8px; }
+#panel-notes .brand-pick {
+  cursor: pointer; flex: 1; text-align: center; padding: 9px 0; font-size: 13px; font-weight: 700;
+  border-radius: 20px; border: 1px solid var(--line); color: var(--muted); background: var(--card);
+}
+#panel-notes .brand-pick.sel-gem { color: var(--primary); border-color: var(--primary); background: var(--bg); }
+#panel-notes .brand-pick.sel-gold { color: var(--gold); border-color: var(--gold); background: var(--bg); }
+#panel-notes .tag-edit { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+#panel-notes .tag-edit .note-tag { cursor: pointer; }
+#panel-notes .tag-add {
+  box-sizing: border-box; background: var(--bg); border: 1px dashed #2a3f33; color: var(--muted);
+  border-radius: 20px; padding: 4px 9px; font-size: 12px; width: 110px;
+}
+#panel-notes .note-save-row { display: flex; gap: 10px; margin-top: 14px; }
+#panel-notes .note-save {
+  cursor: pointer; flex: 1; text-align: center; background: var(--primary); color: #06281b;
+  font-weight: 700; padding: 10px; border-radius: 9px; border: none; font-size: 14px;
+}
+#panel-notes .note-save:hover { background: #19e292; }
+#panel-notes .note-cancel {
+  cursor: pointer; text-align: center; background: transparent; border: 1px solid var(--line);
+  color: var(--text); font-weight: 600; padding: 10px 14px; border-radius: 9px; font-size: 14px;
+}
+#panel-notes .note-local { text-align: center; font-size: 12px; color: var(--dim); margin-top: 12px; }
