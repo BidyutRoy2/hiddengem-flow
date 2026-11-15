@@ -31,6 +31,15 @@
 
     <main>
       <section id="panel-overview" class="panel active">
+        <div id="updateBanner" class="update-banner" role="status" hidden>
+          <p id="updateBannerText"></p>
+          <p id="updateHowTo" class="hint" hidden>How to update: 1. Click <b>Download the new build</b> and unzip it. 2. In your unpacked extension folder, replace all files with the new ones. 3. Open <code>chrome://extensions</code> and press <b>Reload</b> on HiddenGem Flow. Do not remove the extension — removing deletes your saved tasks and scripts.</p>
+          <div class="row">
+            <a id="updateDownload" class="primary" href="https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v1.0.0-dev-20261115" target="_blank" rel="noopener noreferrer">Download the new build</a>
+            <button id="updateHowToBtn" type="button" class="secondary">How to update</button>
+            <button id="updateDismissBtn" type="button" class="secondary">Dismiss</button>
+          </div>
+        </div>
         <div class="grid">
           <div class="card">
             <h2>At a glance</h2>
@@ -278,6 +287,7 @@
             <li><code>hiddengemflow.store.cache.v1</code> — last good Official Store index + when it was fetched (Phase 4)</li>
             <li><code>hiddengemflow.bridge.dismissed.v1</code> — hostnames where the store bridge banner was dismissed (Phase 4)</li>
             <li><code>hiddengemflow.runs.v1</code> — multi-tab run log, last 50 runs (Phase 4)</li>
+            <li><code>hiddengemflow.update.v1</code> — latest release check result + when it was checked (update checker)</li>
           </ul>
           <div class="row">
             <button id="resetPos" class="secondary">Reset floating window position</button>
@@ -288,7 +298,16 @@
             <li><strong>Scripts need two more grants, both yours to give.</strong> First, Chrome's per-extension <strong>Allow User Scripts</strong> toggle (chrome://extensions → HiddenGem Flow → Details) — no extension can flip it for you; the floating window has a button that opens that page directly. Second, <strong>site access</strong> for the sites a script runs on — an <em>optional</em> permission (<code>*://*/*</code>) granted per site (Scripts tab → Grant site access, or Site access → On all sites in the extension details). Until both are on, scripts are saved but never run.</li>
             <li><strong>Notifications</strong> are used only by <code>GM_notification</code> from a running script. <strong>Alarms</strong> was removed in v1.0.0 — it was requested but never used.</li>
           </ul>
-          <p><strong>Network, all user-triggered:</strong> nothing is sent to any server except (1) the best-effort favicon image (Google s2) shown next to each task site — a letter tile shows instead if it fails; (2) a script import from a URL, fetched once when you click Fetch, and the page you fetch can see the request; (3) <strong>Load store</strong>, which fetches the Official Store index (raw.githubusercontent, then jsDelivr), and opening a store script's detail view, which fetches its code once. The Smart Notification Bridge never fetches on its own — it reads the cached store copy. No analytics, no telemetry. The run log only records tabs this extension opened.</p>
+          <p><strong>Network:</strong> almost everything is user-triggered — nothing is sent to any server except (1) the best-effort favicon image (Google s2) shown next to each task site — a letter tile shows instead if it fails; (2) a script import from a URL, fetched once when you click Fetch, and the page you fetch can see the request; (3) <strong>Load store</strong>, which fetches the Official Store index (raw.githubusercontent, then jsDelivr), and opening a store script's detail view, which fetches its code once. The Smart Notification Bridge never fetches on its own — it reads the cached store copy. No analytics, no telemetry. The run log only records tabs this extension opened. The one exception is the <strong>update checker</strong>: it asks api.github.com for the latest release at most once every 6 hours (on startup/install and when this dashboard opens), plus whenever you click <strong>Check for updates</strong> below. It sends no data about you — the request is a plain public release listing.</p>
+        </div>
+        <div class="card">
+          <h2>Extension updates</h2>
+          <p>This extension was installed unpacked, so Chrome never updates it by itself. A newer build is only ever <em>noticed</em> here — the update itself stays manual (download the new build, replace the files in your unpacked extension folder, press Reload in <code>chrome://extensions</code>; do not remove the extension). The checker asks GitHub for the latest release at most once every 6 hours, and shows a banner on the Overview tab when a newer build exists.</p>
+          <div class="row">
+            <button id="updateCheckNow" type="button" class="secondary">Check for updates</button>
+            <span id="updateCheckResult" class="hint" role="status"></span>
+          </div>
+          <p id="updateLastChecked" class="hint">Last checked: never.</p>
         </div>
       </section>
     </main>
