@@ -33,6 +33,16 @@ body {
 
 .hgf-page .body { padding: 12px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
 .hgf-page .site { font-size: 12px; color: #9DB8AC; word-break: break-all; }
+
+/* Extension update line (Unreleased) — same gold compact line as the
+   in-page floating window. Clicking opens the dashboard. */
+.hgf-page .upd-line {
+  all: unset; cursor: pointer; display: block; width: 100%; box-sizing: border-box;
+  background: #2A1F0A; border: 1px solid #FFC24B; border-radius: 9px;
+  padding: 8px 10px; font-size: 12px; color: #E8FFF3; text-align: left;
+}
+.hgf-page .upd-line:hover { background: #3A2E12; }
+.hgf-page .upd-line[hidden] { display: none; }
 .hgf-page section h3 { margin: 0 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: #00D084; }
 .hgf-page section p { margin: 0; color: #C9DCD2; }
 .hgf-page .hint { color: #8A9B91; font-size: 12px; margin-top: 6px; }
