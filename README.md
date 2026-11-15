@@ -29,7 +29,11 @@ That's it — the floating window and dashboard are ready. Two grants are still 
 
 ### Watch: install in 60 seconds
 
-**▶ [Watch the install video](docs/install-guide/install.mp4)** (60 seconds, recorded in real Chrome — download → extract → Load unpacked → Allow User Scripts → floating window opens). Recorded in Chrome for Testing; the steps are identical in normal Chrome. Full notes in [`docs/install-guide/RUN_NOTES.md`](docs/install-guide/RUN_NOTES.md).
+[![Install video preview — click to watch the full 60-second video](docs/install-guide/install-preview.gif)](docs/install-guide/install.mp4)
+
+**▶ [Watch the full install video (60 seconds)](docs/install-guide/install.mp4)** — recorded in real Chrome: download → extract → Load unpacked → Allow User Scripts → floating window opens. Recorded in Chrome for Testing; the steps are identical in normal Chrome. Full notes in [`docs/install-guide/RUN_NOTES.md`](docs/install-guide/RUN_NOTES.md).
+
+GitHub READMEs can't embed an mp4 player, so the preview above plays as a GIF — click it for the full video, which plays on its file page.
 
 **1. Download the zip from the release**
 
