@@ -31,6 +31,7 @@ import {
   sortTasks,
   type Task,
 } from "./shared/tasks";
+import { UPDATE_KEY, isUpdateAvailable, loadUpdateRecord } from "./shared/updates";
 
 // HiddenGem Flow — floating window (Phase 4: + Smart Notification Bridge).
 //
@@ -156,6 +157,9 @@ const CSS = `
 .hgf .bridge { background: #2A1F0A; border: 1px solid #FFC24B; border-radius: 9px; padding: 10px; font-size: 12px; color: #E8FFF3; }
 .hgf .bridge[hidden] { display: none; }
 .hgf .bridge p { margin: 0 0 8px; }
+.hgf .upd { all: unset; cursor: pointer; display: block; width: 100%; box-sizing: border-box; background: #2A1F0A; border: 1px solid #FFC24B; border-radius: 9px; padding: 8px 10px; font-size: 12px; color: #E8FFF3; text-align: left; }
+.hgf .upd:hover { background: #3A2E12; }
+.hgf .upd[hidden] { display: none; }
 .hgf .bridge-row { display: flex; gap: 6px; }
 .hgf .bridge-open { all: unset; cursor: pointer; flex: 1; text-align: center; background: #FFC24B; color: #3A2A00; font-weight: 700; padding: 6px 8px; border-radius: 7px; }
 .hgf .bridge-dismiss { all: unset; cursor: pointer; text-align: center; background: transparent; border: 1px solid #2A3B32; color: #E8FFF3; font-weight: 600; padding: 6px 10px; border-radius: 7px; }
@@ -547,6 +551,44 @@ async function initFloatingBridge(win: HTMLElement): Promise<void> {
   });
 }
 
+/**
+ * Extension update line (Unreleased) — one compact line under the
+ * header, only when a newer build was found. Reads the STORED check
+ * record only (loadUpdateRecord) — the floating window never fetches
+ * on its own; the background checks on startup/install and the
+ * dashboard asks. Clicking opens the dashboard, where the banner has
+ * the download link. Dismissing in the dashboard hides this line too
+ * (same record, same dismiss key) until a newer release appears.
+ */
+async function initFloatingUpdate(win: HTMLElement): Promise<void> {
+  const q = <T extends HTMLElement>(sel: string): T | null => win.querySelector(sel) as T | null;
+  const line = q<HTMLButtonElement>("[data-update]");
+  if (!line) return;
+  const lineEl: HTMLButtonElement = line; // keeps the null-guard inside refresh()
+  line.addEventListener("click", () => {
+    void chrome.runtime.sendMessage({ type: "hiddengemflow:open-dashboard" });
+  });
+
+  async function refresh(): Promise<void> {
+    let record: Awaited<ReturnType<typeof loadUpdateRecord>> = null;
+    try {
+      record = await loadUpdateRecord();
+    } catch {
+      record = null;
+    }
+    if (!record || !isUpdateAvailable(record)) {
+      lineEl.hidden = true;
+      lineEl.textContent = "";
+      return;
+    }
+    lineEl.textContent = `Update available: ${record.tag} — open the Dashboard to download it.`;
+    lineEl.hidden = false;
+  }
+
+  floatingRefreshers.push(refresh);
+  await refresh();
+}
+
 function buildWindow(): HTMLElement {
   // Live-test fix (v1.0.1, bug #4): a fresh window for this tab — drop
   // the previous window's refreshers (they render into a removed DOM
@@ -557,7 +599,7 @@ function buildWindow(): HTMLElement {
     try {
       chrome.storage.onChanged.addListener((changes: Record<string, { newValue?: unknown }>, areaName: string) => {
         if (areaName !== "local") return;
-        if (changes[TASKS_KEY] || changes[SCRIPTS_KEY] || changes[SCRIPT_ERRORS_KEY]) {
+        if (changes[TASKS_KEY] || changes[SCRIPTS_KEY] || changes[SCRIPT_ERRORS_KEY] || changes[UPDATE_KEY]) {
           runFloatingRefreshers();
         }
       });
@@ -584,6 +626,7 @@ function buildWindow(): HTMLElement {
       <button type="button" data-act="close" title="Close" aria-label="Close">✕</button>
     </header>
     <div class="body">
+      <button type="button" class="upd" data-update hidden></button>
       <div class="bridge" data-bridge hidden>
         <p>${BRIDGE_MESSAGE}</p>
         <div class="bridge-row">
@@ -703,6 +746,9 @@ function buildWindow(): HTMLElement {
 
   // --- Smart Notification Bridge (Phase 4) ---
   void initFloatingBridge(win);
+
+  // --- Extension update line (Unreleased) ---
+  void initFloatingUpdate(win);
 
   // Restore saved position, then show.
   void loadPos().then((pos) => {
