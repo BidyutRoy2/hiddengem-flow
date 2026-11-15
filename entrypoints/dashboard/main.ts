@@ -74,12 +74,16 @@ import {
   MSG_GET_ACTIVE_TAB,
   TASKS_KEY,
   buildFaviconUrl,
+  buildTasksBackup,
   createTask,
   deleteTask,
+  formatImportResult,
   formatOpenResult,
   letterFor,
   loadTasks,
+  mergeTasksBackup,
   openUrlsViaBackground,
+  parseTasksBackup,
   saveTasks,
   searchTasks,
   sortTasks,
@@ -498,6 +502,19 @@ function showOpenStatus(message: string): void {
   }
 }
 
+/** Show the result of a task export / import ("Imported 5 tasks. 1 skipped — already saved.") under the task actions. */
+function showImportStatus(message: string): void {
+  const status = el("taskImportStatus");
+  if (!status) return;
+  if (message) {
+    status.textContent = message;
+    status.hidden = false;
+  } else {
+    status.textContent = "";
+    status.hidden = true;
+  }
+}
+
 async function openTasks(toOpen: Task[]): Promise<void> {
   if (toOpen.length === 0) return;
   const result = await openUrlsViaBackground(toOpen.map((t) => t.url));
@@ -550,6 +567,9 @@ function initTasks(): void {
   const openSelectedBtn = el<HTMLButtonElement>("openSelected");
   const openAllBtn = el<HTMLButtonElement>("openAllTasks");
   const cancelBtn = el("taskCancelEdit");
+  const exportBtn = el<HTMLButtonElement>("taskExport");
+  const importBtn = el<HTMLButtonElement>("taskImportBtn");
+  const importFile = el<HTMLInputElement>("taskImportFile");
 
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -594,6 +614,49 @@ function initTasks(): void {
 
   openAllBtn?.addEventListener("click", () => {
     void openTasks(sortTasks(tasks));
+  });
+
+  // Tasks backup (finding A-07): one JSON file, dashboard only — same
+  // pattern as the scripts Backup (export JSON) / Restore backup.
+  // Export is always a faithful copy of the list as shown; import
+  // merges (a URL that is already saved is skipped, never replaced),
+  // so no confirm is needed — nothing is ever deleted by it.
+  exportBtn?.addEventListener("click", () => {
+    const backup = buildTasksBackup(tasks);
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadFile(`hiddengem-flow-tasks-${stamp}.json`, JSON.stringify(backup, null, 2), "application/json");
+    showError("");
+    showImportStatus(
+      backup.tasks.length === 0
+        ? "Exported an empty backup — no tasks saved yet."
+        : `Exported ${backup.tasks.length} task${backup.tasks.length === 1 ? "" : "s"} to hiddengem-flow-tasks-${stamp}.json.`,
+    );
+  });
+
+  importBtn?.addEventListener("click", () => importFile?.click());
+  importFile?.addEventListener("change", async () => {
+    const file = importFile.files?.[0];
+    importFile.value = "";
+    if (!file) return;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch {
+      showError("That file is not a HiddenGem Flow tasks backup — nothing was imported.");
+      showImportStatus("");
+      return;
+    }
+    const result = parseTasksBackup(parsed);
+    if (!result.ok) {
+      showError(result.error);
+      showImportStatus("");
+      return;
+    }
+    const merged = mergeTasksBackup(tasks, result.tasks);
+    tasks = merged.tasks;
+    await persist();
+    showError("");
+    showImportStatus(formatImportResult(merged.imported, merged.skipped, result.tasks.length));
   });
 
   void loadTasks().then((loaded) => {
