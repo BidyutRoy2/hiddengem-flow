@@ -87,6 +87,14 @@ import {
   updateTask,
   type Task,
 } from "../shared/tasks";
+import {
+  MSG_CHECK_UPDATES,
+  UPDATE_KEY,
+  dismissUpdate,
+  isUpdateAvailable,
+  loadUpdateRecord,
+  type UpdateRecord,
+} from "../shared/updates";
 
 declare const chrome: any;
 
@@ -189,6 +197,129 @@ function initReset(): void {
       if (out) out.textContent = "Could not reset (storage unavailable).";
     }
   });
+}
+
+// ---------------------------------------------------------------------------
+// Extension update checker (Unreleased)
+// ---------------------------------------------------------------------------
+// The banner on the Overview tab + the Settings check. The dashboard
+// never fetches the releases API itself — it asks the background
+// (MSG_CHECK_UPDATES), which gates the check to at most once per 6h
+// (a manual Settings check forces it). A failed check stays silent:
+// the banner keeps showing the last good record, and the Settings
+// status line is the only place a manual failure is mentioned.
+
+function updateBannerText(record: UpdateRecord): string {
+  const when = formatStoreDateShort(record.assetUpdatedAt || record.publishedAt) || record.assetUpdatedAt || record.publishedAt;
+  return `A newer build is available — ${record.tag} (updated ${when}). Download it from the release page, replace the files in your unpacked extension folder, then press Reload in chrome://extensions. Do not remove the extension — removing deletes your saved tasks and scripts.`;
+}
+
+function wasUpdateDismissed(record: UpdateRecord | null): boolean {
+  return (
+    !!record &&
+    record.dismissedTag !== "" &&
+    record.dismissedTag === record.tag &&
+    record.dismissedAssetUpdatedAt === record.assetUpdatedAt
+  );
+}
+
+function renderUpdateState(record: UpdateRecord | null): void {
+  const last = el("updateLastChecked");
+  if (last) {
+    last.textContent =
+      record && record.checkedAt > 0
+        ? `Last checked: ${new Date(record.checkedAt).toLocaleString()}`
+        : "Last checked: never.";
+  }
+  const banner = el("updateBanner");
+  const text = el("updateBannerText");
+  const download = el<HTMLAnchorElement>("updateDownload");
+  if (!banner || !text) return;
+  if (isUpdateAvailable(record)) {
+    text.textContent = updateBannerText(record as UpdateRecord);
+    // The download control is a real link (target=_blank); point it at
+    // the release page from the record. The static href in the HTML is
+    // the same release page as a fallback.
+    if (download && (record as UpdateRecord).downloadUrl) {
+      download.href = (record as UpdateRecord).downloadUrl;
+    }
+    banner.hidden = false;
+  } else {
+    banner.hidden = true;
+  }
+}
+
+async function askBackgroundForUpdate(force: boolean): Promise<{ ok: boolean; available: boolean; record: UpdateRecord | null }> {
+  try {
+    const res = (await chrome.runtime.sendMessage({ type: MSG_CHECK_UPDATES, force })) as {
+      ok?: boolean;
+      available?: boolean;
+      record?: UpdateRecord | null;
+    } | null;
+    if (res && typeof res === "object") {
+      return { ok: res.ok === true, available: res.available === true, record: res.record ?? null };
+    }
+  } catch {
+    // Background unreachable — fall through to the stored record.
+  }
+  const stored = await loadUpdateRecord();
+  // Raw availability (same rule as the background): the Settings result
+  // reports whether a newer build exists, not whether the banner shows.
+  return { ok: false, available: stored?.available ?? false, record: stored };
+}
+
+function initUpdateChecker(): void {
+  const howToBtn = el<HTMLButtonElement>("updateHowToBtn");
+  const howTo = el("updateHowTo");
+  const dismissBtn = el<HTMLButtonElement>("updateDismissBtn");
+  const checkBtn = el<HTMLButtonElement>("updateCheckNow");
+  const checkResult = el("updateCheckResult");
+
+  howToBtn?.addEventListener("click", () => {
+    if (howTo) howTo.hidden = !howTo.hidden;
+  });
+  dismissBtn?.addEventListener("click", async () => {
+    await dismissUpdate();
+    // The storage listener below re-renders; render now too in case
+    // storage events are unavailable in this context.
+    renderUpdateState(await loadUpdateRecord());
+  });
+  checkBtn?.addEventListener("click", async () => {
+    if (checkBtn) checkBtn.disabled = true;
+    if (checkResult) checkResult.textContent = "Checking…";
+    const result = await askBackgroundForUpdate(true);
+    renderUpdateState(result.record);
+    if (checkResult) {
+      if (!result.ok) {
+        checkResult.textContent = "Could not reach GitHub — try again later.";
+      } else if (result.available && result.record) {
+        const dismissed = wasUpdateDismissed(result.record);
+        checkResult.textContent = dismissed
+          ? `A newer build is available — ${result.record.tag}. You dismissed the Overview banner for this release — it will show again for a newer one.`
+          : `A newer build is available — ${result.record.tag}. See the Overview tab for the download link.`;
+      } else {
+        checkResult.textContent = "You are up to date.";
+      }
+    }
+    if (checkBtn) checkBtn.disabled = false;
+  });
+
+  // Render from the stored record immediately, then ask the background
+  // (non-forced — the 6h gate applies) and re-render from the answer.
+  void loadUpdateRecord().then((record) => renderUpdateState(record));
+  void askBackgroundForUpdate(false).then((result) => renderUpdateState(result.record));
+
+  // Live-update while the dashboard stays open (the background check
+  // on startup/install can land after this page opened).
+  try {
+    chrome.storage.onChanged.addListener((changes: Record<string, { newValue?: unknown }>, areaName: string) => {
+      if (areaName === "local" && changes[UPDATE_KEY]) {
+        void loadUpdateRecord().then((record) => renderUpdateState(record));
+      }
+    });
+  } catch {
+    // Storage events unavailable — the ask above still applies.
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -493,6 +624,7 @@ function initTasks(): void {
 
 initTabs();
 initReset();
+initUpdateChecker();
 initTasks();
 initScripts();
 initStore();
