@@ -22,6 +22,7 @@ import {
   type Script,
 } from "./shared/scripts";
 import { MSG_GET_ACTIVE_TAB, MSG_OPEN_URLS, loadTasks, markOpened, normalizeUrl, saveTasks } from "./shared/tasks";
+import { MSG_CHECK_UPDATES, checkForUpdates } from "./shared/updates";
 
 // HiddenGem Flow — background service worker (Unreleased).
 //
@@ -68,6 +69,14 @@ import { MSG_GET_ACTIVE_TAB, MSG_OPEN_URLS, loadTasks, markOpened, normalizeUrl,
 //     before finishing (tabs.onRemoved). "Stop All" marks queued/running
 //     runs "stopped" and best-effort closes only the tabs this run
 //     opened — it never touches other tabs.
+//  7. (Unreleased) Extension update checker: on startup/install, and
+//     whenever the dashboard asks (MSG_CHECK_UPDATES), ask the public
+//     GitHub releases API whether a newer build exists. The check is
+//     gated to at most once per 6h (plus a manual check from Settings)
+//     and fails silently on rate limit / network error. It only ever
+//     NOTICES a newer build — an unpacked install cannot update itself,
+//     so the dashboard banner + floating line point the user at the
+//     manual replace-files-and-Reload steps. See shared/updates.ts.
 //
 // MV3 service workers are killed after ~30s idle, so nothing stateful
 // lives here — all state is in chrome.storage.local.
@@ -419,7 +428,7 @@ export default defineBackground(() => {
   }
 
   chrome.runtime.onMessage.addListener(
-    (message: { type?: string; urls?: unknown; id?: string; enabled?: boolean; title?: string; message?: string; tab?: string }, _sender: unknown, sendResponse: (r: unknown) => void) => {
+    (message: { type?: string; urls?: unknown; id?: string; enabled?: boolean; title?: string; message?: string; tab?: string; force?: boolean }, _sender: unknown, sendResponse: (r: unknown) => void) => {
       if (message?.type === OPEN_DASHBOARD) {
         void openDashboard(typeof message.tab === "string" ? message.tab : undefined).then(
           () => sendResponse({ ok: true }),
@@ -448,6 +457,21 @@ export default defineBackground(() => {
         void openExtensionDetails().then(
           (result) => sendResponse(result),
           (err: unknown) => sendResponse({ ok: false, error: String(err) }),
+        );
+        return true; // async response
+      }
+      // --- Unreleased: extension update check (dashboard ask / Settings manual check) ---
+      if (message?.type === MSG_CHECK_UPDATES) {
+        void checkForUpdates(message?.force === true).then(
+          (result) =>
+            sendResponse({
+              ok: result.ok,
+              available: result.available,
+              record: result.record ?? null,
+              checked: result.checked,
+              error: result.error,
+            }),
+          (err: unknown) => sendResponse({ ok: false, available: false, record: null, checked: false, error: String(err) }),
         );
         return true; // async response
       }
@@ -533,11 +557,19 @@ export default defineBackground(() => {
     console.info("[HiddenGem Flow] installed — v1.0.0");
     void reregisterEnabledFromStorage();
     void ensureGmRelayForEnabled();
+    // Unreleased: update check on install — gated inside checkForUpdates
+    // (at most once per 6h), silent on failure.
+    void checkForUpdates().catch(() => {
+      // Silent by design — no banner, no error.
+    });
   });
 
   chrome.runtime.onStartup.addListener(() => {
     void reregisterEnabledFromStorage();
     void ensureGmRelayForEnabled();
+    void checkForUpdates().catch(() => {
+      // Same gate, same silence as on install.
+    });
   });
 
   // Finding A-04: host access granted AFTER a script was registered
