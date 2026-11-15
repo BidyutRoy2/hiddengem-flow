@@ -225,6 +225,20 @@ button.primary {
 
 button.primary:hover { background: #19e292; }
 
+/* The update banner's download control is a real link (a button with
+   window.open was blocked in the live test), styled like .primary. */
+a.primary {
+  display: inline-block;
+  background: var(--primary);
+  color: #06281b;
+  border-radius: 9px;
+  padding: 9px 18px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+a.primary:hover { background: #19e292; }
+
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .tasks-toolbar {
@@ -631,6 +645,20 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 
 .bridge-banner p { margin: 0 0 12px; }
+
+/* --- Extension update banner (Unreleased) --- */
+
+.update-banner {
+  background: #2a1f0a;
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 0 0 14px;
+}
+
+.update-banner p { margin: 0 0 12px; }
+
+.update-banner p:last-child { margin-bottom: 0; }
 
 /* --- Logs — multi-tab runs (Phase 4) --- */
 
