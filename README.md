@@ -109,7 +109,7 @@ npm run build      # output in .output/chrome-mv3/
 Two grants are needed before any userscript runs. Both are yours to give — no extension can do them for you:
 
 1. **Allow User Scripts** — `chrome://extensions` → HiddenGem Flow → Details → turn **Allow User Scripts** ON. The dashboard and the floating window both show a button that opens that Details page directly.
-2. **Site access** — click **Grant site access** on a script (Chrome's own prompt), or set Site access → On all sites in the extension details. Until granted, a script is registered but never runs.
+2. **Site access** — click **Grant site access** on a script and allow Chrome's prompt. Until granted, a script is registered but never runs.
 
 ## Privacy
 
