@@ -268,6 +268,160 @@ export async function openUrlsViaBackground(urls: string[]): Promise<OpenUrlsRes
   }
 }
 
+// ---------------------------------------------------------------------------
+// Tasks backup: export / import (one JSON file, dashboard only)
+// ---------------------------------------------------------------------------
+
+export const TASKS_BACKUP_APP = "hiddengem-flow";
+export const TASKS_BACKUP_TYPE = "tasks";
+export const TASKS_BACKUP_VERSION = 1;
+/** A backup never carries more than this many tasks. */
+export const TASKS_BACKUP_MAX_TASKS = 500;
+
+export interface TasksBackupEntry {
+  name: string;
+  url: string;
+  pinned: boolean;
+  createdAt: number;
+  lastOpenedAt?: number;
+}
+
+export interface TasksBackup {
+  app: "hiddengem-flow";
+  type: "tasks";
+  version: 1;
+  exportedAt: string;
+  tasks: TasksBackupEntry[];
+}
+
+/**
+ * Build the backup file content for `tasks`, in the order the list
+ * shows them (sortTasks: pinned first, then newest). The backup is a
+ * faithful copy: ids and favicons are left out (ids are regenerated
+ * on import, favicons are re-derived from the URL), everything else
+ * (name, URL, pin, createdAt, lastOpenedAt) is kept verbatim, so
+ * importing it into an empty profile reproduces the same list. Pure.
+ */
+export function buildTasksBackup(tasks: Task[], exportedAt: string = new Date().toISOString()): TasksBackup {
+  return {
+    app: TASKS_BACKUP_APP,
+    type: TASKS_BACKUP_TYPE,
+    version: TASKS_BACKUP_VERSION,
+    exportedAt,
+    tasks: sortTasks(tasks).map((t) => ({
+      name: t.name,
+      url: t.url,
+      pinned: t.pinned,
+      createdAt: t.createdAt,
+      ...(typeof t.lastOpenedAt === "number" ? { lastOpenedAt: t.lastOpenedAt } : {}),
+    })),
+  };
+}
+
+export type TasksBackupParseResult = { ok: true; tasks: TasksBackupEntry[] } | { ok: false; error: string };
+
+/**
+ * Validate a parsed backup file. Strict on identity (the app + type
+ * markers, tasks is an array, version is 1 when present) and on every
+ * entry (non-empty name, valid http(s) URL); lenient on timestamps (a
+ * missing or non-numeric createdAt falls back to `now`, a bad
+ * lastOpenedAt is dropped) and on pinned (anything non-true is
+ * false). A file whose entries are only partly usable is refused as
+ * a whole — merging half a backup would silently lose sites, so the
+ * user fixes the file first. Pure.
+ */
+export function parseTasksBackup(parsed: unknown, now: number = Date.now()): TasksBackupParseResult {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { ok: false, error: "That file is not a HiddenGem Flow tasks backup — nothing was imported." };
+  }
+  const p = parsed as { app?: unknown; type?: unknown; version?: unknown; tasks?: unknown };
+  if (p.app !== TASKS_BACKUP_APP || p.type !== TASKS_BACKUP_TYPE) {
+    return { ok: false, error: "That file is not a HiddenGem Flow tasks backup — nothing was imported." };
+  }
+  if (p.version !== undefined && p.version !== TASKS_BACKUP_VERSION) {
+    return { ok: false, error: "That file is not a HiddenGem Flow tasks backup — nothing was imported." };
+  }
+  if (!Array.isArray(p.tasks)) {
+    return { ok: false, error: "That file is not a HiddenGem Flow tasks backup — nothing was imported." };
+  }
+  if (p.tasks.length > TASKS_BACKUP_MAX_TASKS) {
+    return { ok: false, error: `That backup has more than ${TASKS_BACKUP_MAX_TASKS} tasks — nothing was imported.` };
+  }
+  const entries: TasksBackupEntry[] = [];
+  let usable = 0;
+  for (const raw of p.tasks) {
+    const obj = raw !== null && typeof raw === "object" ? (raw as { name?: unknown; url?: unknown; pinned?: unknown; createdAt?: unknown; lastOpenedAt?: unknown }) : null;
+    const name = obj ? String(obj.name ?? "").trim() : "";
+    const url = obj ? normalizeUrl(String(obj.url ?? "")) : null;
+    if (!name || !url) continue;
+    usable++;
+    const createdAtRaw = obj?.createdAt;
+    const lastOpenedRaw = obj?.lastOpenedAt;
+    entries.push({
+      name,
+      url,
+      pinned: obj?.pinned === true,
+      createdAt: typeof createdAtRaw === "number" && Number.isFinite(createdAtRaw) ? createdAtRaw : now,
+      ...(typeof lastOpenedRaw === "number" && Number.isFinite(lastOpenedRaw) ? { lastOpenedAt: lastOpenedRaw } : {}),
+    });
+  }
+  if (usable !== p.tasks.length) {
+    return { ok: false, error: `The backup has ${p.tasks.length} tasks, but only ${usable} are usable — the rest were skipped. Check the file before importing.` };
+  }
+  return { ok: true, tasks: entries };
+}
+
+export interface TasksBackupMergeResult {
+  tasks: Task[];
+  imported: number;
+  skipped: number;
+}
+
+/**
+ * Merge backup entries into `existing` — never replaces. An entry
+ * whose normalized URL is already saved (the same duplicate rule as
+ * createTask) is skipped; every other entry is appended with a fresh
+ * id, keeping its name, URL, pin and timestamps from the backup, and
+ * the merged list is returned in display order (sortTasks). Pure.
+ */
+export function mergeTasksBackup(existing: Task[], incoming: TasksBackupEntry[]): TasksBackupMergeResult {
+  const merged = [...existing];
+  let imported = 0;
+  let skipped = 0;
+  for (const entry of incoming) {
+    if (isDuplicateUrl(merged, entry.url)) {
+      skipped++;
+      continue;
+    }
+    merged.push({
+      id: newId(),
+      name: entry.name,
+      url: entry.url,
+      favicon: buildFaviconUrl(entry.url) ?? undefined,
+      pinned: entry.pinned,
+      createdAt: entry.createdAt,
+      ...(typeof entry.lastOpenedAt === "number" ? { lastOpenedAt: entry.lastOpenedAt } : {}),
+    });
+    imported++;
+  }
+  return { tasks: sortTasks(merged), imported, skipped };
+}
+
+/**
+ * One honest line for an import result. Examples:
+ *  - (5 imported, 1 skipped, 6 total) → "Imported 5 tasks. 1 skipped — already saved."
+ *  - (0 imported, 3 skipped, 3 total) → "Imported 0 tasks — all 3 were already saved."
+ *  - (0 imported, 0 skipped, 0 total) → "Imported 0 tasks — the backup was empty."
+ *  - (5 imported, 0 skipped, 5 total) → "Imported 5 tasks."
+ * Pure.
+ */
+export function formatImportResult(imported: number, skipped: number, total: number): string {
+  if (total === 0) return "Imported 0 tasks — the backup was empty.";
+  if (imported === 0) return `Imported 0 tasks — all ${skipped} were already saved.`;
+  if (skipped === 0) return `Imported ${imported} task${imported === 1 ? "" : "s"}.`;
+  return `Imported ${imported} task${imported === 1 ? "" : "s"}. ${skipped} skipped — already saved.`;
+}
+
 /**
  * One honest line for an open result. Examples:
  *  - { opened: 3 } → "Opened 3 tabs."
