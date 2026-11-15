@@ -358,26 +358,31 @@ async function fetchIndexFrom(
 }
 
 /**
- * Fetch the store index: jsDelivr first, raw.githubusercontent on any
- * failure (network error, non-2xx, bad JSON, bad shape). A successful
- * fetch is cached as the last good copy. When both sources fail but a
- * cache exists, the cached list is returned with source "cached" and
- * the live error in `note` — the caller labels it "cached from
- * <date>" honestly. Only when nothing is reachable at all does this
- * return ok:false (the store repo may not exist yet).
+ * Fetch the store index: raw.githubusercontent first, jsDelivr on any
+ * failure (network error, non-2xx, bad JSON, bad shape). Raw first
+ * because jsDelivr caches the @main branch→commit resolution and a
+ * purge does not clear it — verified 2026-11-15 (finding A-05): after
+ * 4 scripts were published, jsDelivr @main still served the old
+ * 1-script index even after 5 successful purges, while raw already
+ * showed all 4. A successful fetch is cached as the last good copy.
+ * When both sources fail but a cache exists, the cached list is
+ * returned with source "cached" and the live error in `note` — the
+ * caller labels it "cached from <date>" honestly. Only when nothing
+ * is reachable at all does this return ok:false (the store repo may
+ * not exist yet).
  */
 export async function fetchStoreIndex(): Promise<StoreFetchResult> {
-  const jsdelivr = await fetchIndexFrom(STORE_INDEX_JSDELIVR);
-  if (jsdelivr.index) {
-    const fetchedAt = Date.now();
-    await saveStoreCache({ index: jsdelivr.index, fetchedAt });
-    return { ok: true, source: "jsdelivr", index: jsdelivr.index, skipped: jsdelivr.skipped };
-  }
   const raw = await fetchIndexFrom(STORE_INDEX_RAW);
   if (raw.index) {
     const fetchedAt = Date.now();
     await saveStoreCache({ index: raw.index, fetchedAt });
     return { ok: true, source: "raw", index: raw.index, skipped: raw.skipped };
+  }
+  const jsdelivr = await fetchIndexFrom(STORE_INDEX_JSDELIVR);
+  if (jsdelivr.index) {
+    const fetchedAt = Date.now();
+    await saveStoreCache({ index: jsdelivr.index, fetchedAt });
+    return { ok: true, source: "jsdelivr", index: jsdelivr.index, skipped: jsdelivr.skipped };
   }
   const cache = await loadStoreCache();
   if (cache) {
@@ -387,14 +392,14 @@ export async function fetchStoreIndex(): Promise<StoreFetchResult> {
       index: cache.index,
       skipped: 0,
       cachedAt: cache.fetchedAt,
-      note: `Live fetch failed (${jsdelivr.error ?? raw.error ?? "network error"}). Showing the last saved copy instead.`,
+      note: `Live fetch failed (${raw.error ?? jsdelivr.error ?? "network error"}). Showing the last saved copy instead.`,
     };
   }
   return {
     ok: false,
     source: "none",
     skipped: 0,
-    error: jsdelivr.error ?? raw.error ?? "Could not reach the store.",
+    error: raw.error ?? jsdelivr.error ?? "Could not reach the store.",
   };
 }
 
