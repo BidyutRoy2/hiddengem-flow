@@ -18,6 +18,7 @@ import {
   sortTasks,
   type Task,
 } from "../shared/tasks";
+import { UPDATE_KEY, isUpdateAvailable, loadUpdateRecord } from "../shared/updates";
 
 // HiddenGem Flow — standalone floating window page (v1.0.2, float.html).
 //
@@ -214,11 +215,38 @@ async function renderScripts(): Promise<void> {
   }
 }
 
+/**
+ * Extension update line (Unreleased) — same compact line as the
+ * in-page floating window. Reads the STORED check record only; the
+ * background checks, this page never fetches. Clicking opens the
+ * dashboard, where the banner has the download link.
+ */
+async function renderUpdateLine(): Promise<void> {
+  const line = q<HTMLButtonElement>('[data-update]');
+  if (!line) return;
+  let record: Awaited<ReturnType<typeof loadUpdateRecord>> = null;
+  try {
+    record = await loadUpdateRecord();
+  } catch {
+    record = null;
+  }
+  if (!record || !isUpdateAvailable(record)) {
+    line.hidden = true;
+    line.textContent = "";
+    return;
+  }
+  line.textContent = `Update available: ${record.tag} — open the Dashboard to download it.`;
+  line.hidden = false;
+}
+
 function refreshAll(): void {
   void renderTasks().catch(() => {
     // Best-effort refresh — a failed re-read must not break the window.
   });
   void renderScripts().catch(() => {
+    // Same as above.
+  });
+  void renderUpdateLine().catch(() => {
     // Same as above.
   });
 }
@@ -299,6 +327,14 @@ q<HTMLButtonElement>('[data-act="us-enable"]')?.addEventListener("click", async 
   }
 });
 
+// The update line opens the dashboard (same as the "Open Dashboard"
+// button below — the banner there has the download link).
+q<HTMLButtonElement>('[data-update]')?.addEventListener("click", () => {
+  void chrome.runtime.sendMessage({ type: "hiddengemflow:open-dashboard" }).catch(() => {
+    // Dashboard open failed — nothing else to do from here.
+  });
+});
+
 // Unreleased: re-check when the popup regains focus — the user may have
 // just flipped the toggle on the Details page and come back.
 window.addEventListener("focus", () => {
@@ -309,7 +345,7 @@ window.addEventListener("focus", () => {
 try {
   chrome.storage.onChanged.addListener((changes: Record<string, { newValue?: unknown }>, areaName: string) => {
     if (areaName !== "local") return;
-    if (changes[TASKS_KEY] || changes[SCRIPTS_KEY] || changes[SCRIPT_ERRORS_KEY]) {
+    if (changes[TASKS_KEY] || changes[SCRIPTS_KEY] || changes[SCRIPT_ERRORS_KEY] || changes[UPDATE_KEY]) {
       refreshAll();
     }
   });
