@@ -1,5 +1,5 @@
 import { defineBackground } from "wxt/sandbox";
-import { checkUserScripts, reregisterEnabledFromStorage, scriptHasHostAccess, setScriptEnabled } from "./shared/engine";
+import { checkUserScripts, ensureGmRelayForEnabled, reregisterEnabledFromStorage, scriptHasHostAccess, setScriptEnabled } from "./shared/engine";
 import {
   MSG_STOP_ALL,
   RUNS_LIMIT,
@@ -51,7 +51,10 @@ import { MSG_GET_ACTIVE_TAB, MSG_OPEN_URLS, loadTasks, markOpened, normalizeUrl,
 //     itself, but re-registering keeps storage and the browser in sync
 //     after an update). The floating window cannot call chrome.userScripts
 //     itself, so it asks here for status + toggles. GM_notification from
-//     a running script arrives here and becomes a real notification.
+//     a running script arrives here and becomes a real notification —
+//     via the GM relay (finding A-04: the USER_SCRIPT world has no
+//     chrome.runtime.sendMessage, so the shim signals through the DOM
+//     and public/gm-relay.js forwards it; see shared/engine.ts).
 //     (v1.0.1 live-test fix) Status also reports per-script HOST ACCESS:
 //     registration alone does not make a script run — Chrome needs host
 //     access for its @match sites (optional_host_permissions *://*/*,
@@ -74,6 +77,8 @@ declare const chrome: any;
 // WXT 0.19 builds a runtime-registered content script to the output root
 // (verified: .output/chrome-mv3/floating.js) — NOT content-scripts/.
 const FLOATING_FILE = "floating.js";
+/** Recently shown GM_notification ids (finding A-04 dedupe). In-memory only; see the MSG_GM_NOTIFY handler. */
+const seenNotifyIds = new Set<string>();
 const OPEN_DASHBOARD = "hiddengemflow:open-dashboard";
 const OPEN_STAGGER_MS = 350;
 const MAX_OPEN_AT_ONCE = 50;
@@ -491,6 +496,22 @@ export default defineBackground(() => {
       if (message?.type === MSG_GM_NOTIFY) {
         // GM_notification from a running userscript: a real notification.
         // Fire-and-forget — the script must never wait on the UI.
+        // Dedupe by the relay/shim notification id: a relay re-register
+        // or a page restore must not double-show the same notification.
+        // The id set is in-memory only (service-worker lifetime); the
+        // shim's DOM node is removed after draining, so duplicates are
+        // rare — this is belt and braces, capped so it cannot grow.
+        if (typeof message.id === "string" && message.id) {
+          if (seenNotifyIds.has(message.id)) {
+            sendResponse({ ok: true, duplicate: true });
+            return false;
+          }
+          seenNotifyIds.add(message.id);
+          if (seenNotifyIds.size > 200) {
+            const first = seenNotifyIds.values().next().value as string | undefined;
+            if (first) seenNotifyIds.delete(first);
+          }
+        }
         try {
           void chrome.notifications.create({
             type: "basic",
@@ -511,11 +532,25 @@ export default defineBackground(() => {
   chrome.runtime.onInstalled.addListener(() => {
     console.info("[HiddenGem Flow] installed — v1.0.0");
     void reregisterEnabledFromStorage();
+    void ensureGmRelayForEnabled();
   });
 
   chrome.runtime.onStartup.addListener(() => {
     void reregisterEnabledFromStorage();
+    void ensureGmRelayForEnabled();
   });
+
+  // Finding A-04: host access granted AFTER a script was registered
+  // (dashboard "Grant site access") must re-attempt the GM relay
+  // registration for that script's patterns — registration throws
+  // while the pattern is ungranted, so the grant event is the retry.
+  try {
+    chrome.permissions.onAdded.addListener(() => {
+      void ensureGmRelayForEnabled();
+    });
+  } catch {
+    // permissions events unavailable — startup/registration retries cover it.
+  }
 
   // --- Phase 4: run status from tab lifecycle ---
   // A running run becomes "done" when its tab finishes loading.
