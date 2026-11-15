@@ -74,7 +74,7 @@
       <section id="panel-tasks" class="panel">
         <div class="card">
           <h2>Daily Tasks</h2>
-          <p>Save the websites you open every day, by name and URL. Click a site to open it in a new tab, tick several and open them together, or open them all at once — each in its own tab. The first tab opens in front; the rest open in the background.</p>
+          <p>Save the websites you open every day, by name and URL. Click a site to open it in a new tab, tick several and open them together, or open them all at once — each in its own tab. The first tab opens in front; the rest open in the background. Export them all to one JSON file, or import a backup the same way — importing merges, it never deletes what you already have.</p>
           <form id="taskForm" novalidate>
             <div class="form-row">
               <label>
@@ -104,7 +104,13 @@
             <button id="openSelected" type="button" class="secondary" disabled>Open selected</button>
             <button id="openAllTasks" type="button" class="secondary">Open All</button>
           </div>
+          <div class="row tasks-actions">
+            <button id="taskExport" type="button" class="secondary">Export tasks (.json)</button>
+            <button id="taskImportBtn" type="button" class="secondary">Import tasks (.json)</button>
+            <input id="taskImportFile" type="file" accept=".json,application/json" hidden />
+          </div>
           <p id="taskOpenStatus" class="hint" role="status" hidden></p>
+          <p id="taskImportStatus" class="hint" role="status" hidden></p>
           <ul id="taskList" class="task-list"></ul>
           <p id="taskEmpty" class="hint">No task sites saved yet — add your first one above.</p>
         </div>
