@@ -29,6 +29,11 @@
   button.primary:hover { background: #19E292; }
   button.secondary { background: transparent; border: 1px solid #2A3B32; color: #E8FFF3; }
   button.secondary:hover { border-color: #00D084; }
+  button.danger { background: transparent; border: 1px solid #5A2320; color: #FF9A8A; }
+  button.danger:hover { border-color: #FF9A8A; }
+  button.danger.armed { background: #FF9A8A; color: #2A1210; border-color: #FF9A8A; }
+  button.linkbtn { background: none; border: none; color: #9DB8AC; text-decoration: underline; padding: 9px 6px; font-weight: 400; }
+  button.linkbtn:hover { color: #E8FFF3; }
   button:disabled { opacity: .45; cursor: not-allowed; }
   button.viewbtn[aria-pressed="true"] { background: #00D084; color: #06281B; border-color: #00D084; }
   .error { color: #FF9A8A; background: #2A1210; border: 1px solid #5A2320; border-radius: 9px; padding: 10px 12px; }
@@ -145,6 +150,7 @@
   <div class="card" id="viewLive" hidden>
     <h2>3 · Live Scripts — upgrade what is already published</h2>
     <p class="sub">Reads the store index as it is right now. With a token it reads through the GitHub API; without one it reads the public copy (raw.githubusercontent first, jsDelivr as a fallback — the store is a public repo). Click a script to load its current file into the upgrade form.</p>
+    <p class="sub">Each script also has a <strong>Delete</strong> button (two clicks: arm, then confirm). Deleting removes it from the store — anyone who already installed it keeps their local copy; the store just stops listing it. A delete needs a token; there is no download-based delete.</p>
     <div class="row">
       <button type="button" class="primary" id="btnRefreshLive">Load live scripts</button>
       <label style="flex:2; min-width:200px;"><span>Search <small>(name or description)</small></span>
@@ -153,6 +159,8 @@
     </div>
     <p id="liveCount" class="muted" style="margin:12px 0 8px;">Not loaded yet.</p>
     <p id="liveError" class="error" hidden></p>
+    <p id="delOk" class="ok" hidden></p>
+    <pre class="log" id="delLog" hidden></pre>
     <ul class="script-list" id="liveList"></ul>
 
     <div id="upgradeCard" hidden>
@@ -190,6 +198,7 @@
       <li>Publishing writes to your repo with your token — the token can only do what its Contents permission allows, on the repo you picked. The first real publish is yours: this page was tested with a deliberately wrong token (which must fail plainly and publish nothing) and with no token at all (download fallback) — no real push was made from here.</li>
       <li>jsDelivr cache clearing is best-effort: if a purge call fails, the publish itself still succeeded — Script Store reads raw.githubusercontent first, so it shows the new index right away; only jsDelivr's own copy may lag a few minutes.</li>
       <li>GitHub's own API limits apply (a few thousand requests per hour for a token). This page makes a handful of requests per publish.</li>
+      <li>Deleting removes the entry from <code>index.json</code> first, then the file from <code>scripts/</code> — if the file delete fails, the entry is still gone from the store and the file stays as an orphan in <code>scripts/</code>. The page says so plainly and you can delete the file on GitHub by hand. Anyone who already installed the script keeps their local copy; deleting only stops the store listing it.</li>
     </ul>
   </div>
 
@@ -827,7 +836,32 @@ function renderLiveList() {
     btn.className = "secondary";
     btn.textContent = "Upgrade this script…";
     btn.addEventListener("click", function () { void openUpgrade(e); });
-    li.append(title, meta, desc, btn);
+    /* Delete is two clicks, no window.confirm(): the first click arms
+       this card's button (red, "Confirm delete"), the second click
+       while armed performs the delete. Arm lives in deleteArmedName,
+       so a re-render (search, refresh) keeps the armed state; arming
+       another card moves the arm there. */
+    var delBtn = document.createElement("button");
+    delBtn.type = "button";
+    var armed = deleteArmedName === e.name;
+    delBtn.className = armed ? "danger armed" : "danger";
+    delBtn.textContent = armed ? "Confirm delete — removes it from the store" : "Delete";
+    delBtn.disabled = deleteBusy;
+    delBtn.addEventListener("click", function () { void onDeleteClick(e); });
+    li.append(title, meta, desc, btn, delBtn);
+    if (armed) {
+      var cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.className = "linkbtn";
+      cancelBtn.textContent = "Cancel";
+      cancelBtn.addEventListener("click", function () {
+        deleteArmedName = null;
+        show($("liveError"), "");
+        show($("delOk"), "");
+        renderLiveList();
+      });
+      li.appendChild(cancelBtn);
+    }
     list.appendChild(li);
   });
 }
@@ -891,6 +925,176 @@ $("btnRefreshLive").addEventListener("click", async function () {
 });
 
 $("liveSearch").addEventListener("input", renderLiveList);
+
+/* --- Delete flow --- */
+
+/* Name of the script whose Delete button is currently armed, or null.
+   Deleting is two clicks by design (arm, then confirm) — no
+   window.confirm(), the page's own inline UI instead. */
+var deleteArmedName = null;
+/* True while a delete is in flight — all Delete buttons are disabled. */
+var deleteBusy = false;
+
+async function onDeleteClick(entry) {
+  show($("liveError"), "");
+  show($("delOk"), "");
+  if (deleteBusy) return;
+  if (deleteArmedName !== entry.name) {
+    /* First click arms it. Clicking another script's Delete moves the
+       arm there (only one card is ever armed). */
+    deleteArmedName = entry.name;
+    renderLiveList();
+    return;
+  }
+  /* Second click while armed performs the delete. */
+  await performDelete(entry);
+}
+
+/* DELETE /repos/:owner/:repo/contents/:path — body { message, sha }.
+   Throws with ghErrorMessage on failure (401 = bad token, etc.). */
+async function ghDeleteFile(path, message, cfg, sha, logFn) {
+  var url = "https://api.github.com/repos/" + encodeURIComponent(cfg.owner) + "/" + encodeURIComponent(cfg.repo) + "/contents/" + path;
+  var headers = { "Accept": "application/vnd.github+json", "Content-Type": "application/json" };
+  if (cfg.token) headers["Authorization"] = "Bearer " + cfg.token;
+  var res;
+  try {
+    res = await fetch(url, { method: "DELETE", headers: headers, body: JSON.stringify({ message: message, sha: sha }) });
+  } catch (err) {
+    throw new Error("Could not reach api.github.com while deleting " + path + " — check your connection, then try again.");
+  }
+  var data = null;
+  try { data = await res.json(); } catch (e) { data = null; }
+  if (res.ok) {
+    if (logFn) logFn("DELETE " + path + " … " + res.status);
+    return;
+  }
+  throw new Error(ghErrorMessage(res.status, data, "could not delete " + path));
+}
+
+/* The script file's name, ONLY when the entry's codeUrl points at this
+   repo's own raw copy under scripts/ — anything else is refused and
+   nothing is deleted. The upgrade path's filenameFromCodeUrl is
+   deliberately looser: it only needs to READ a file, never to remove
+   one. Returns the filename, or null when the codeUrl is foreign,
+   missing, or points outside scripts/. */
+function filenameFromCodeUrlForDelete(codeUrl, cfg) {
+  if (typeof codeUrl !== "string") return null;
+  var prefix = "https://raw.githubusercontent.com/" + cfg.owner + "/" + cfg.repo + "/" + cfg.branch + "/scripts/";
+  if (codeUrl.indexOf(prefix) !== 0) return null;
+  var rest = codeUrl.slice(prefix.length);
+  if (!rest || rest.indexOf("/") !== -1 || rest.indexOf("?") !== -1 || rest.indexOf("#") !== -1) return null;
+  try { return decodeURIComponent(rest); } catch (e) { return null; }
+}
+
+async function performDelete(entry) {
+  var cfg = readConfig();
+  show($("liveError"), "");
+  show($("delOk"), "");
+  var logEl = $("delLog");
+  logEl.textContent = "";
+  logEl.hidden = true;
+  var logFn = function (line) { logLine(logEl, line); };
+  if (!cfg.token) {
+    deleteArmedName = null;
+    renderLiveList();
+    show($("liveError"), "Add your token above to delete scripts from the store.");
+    return;
+  }
+  /* The codeUrl check runs BEFORE any write. The file is deleted only
+     from this repo's own scripts/ — a foreign codeUrl means delete
+     NOTHING, and the index update in step 1 below would already have
+     removed the listing if it ran first. */
+  var filename = filenameFromCodeUrlForDelete(entry.codeUrl, cfg);
+  if (!filename) {
+    deleteArmedName = null;
+    renderLiveList();
+    show($("liveError"), "This script's file is not in this repo — delete it where it lives.");
+    return;
+  }
+  var scriptPath = "scripts/" + filename;
+  deleteBusy = true;
+  renderLiveList();
+  try {
+    logFn("Deleting “" + entry.name + "” from " + cfg.owner + "/" + cfg.repo + "@" + cfg.branch + "…");
+    /* 1 — fresh index (and its file id). */
+    logFn("GET index.json …");
+    var indexFile = await ghGetFile("index.json", cfg);
+    if (!indexFile.exists || !indexFile.text) {
+      throw new Error("index.json is not in the repo.");
+    }
+    var index;
+    try {
+      index = JSON.parse(indexFile.text);
+      if (!index || typeof index !== "object" || !Array.isArray(index.scripts)) throw new Error("bad shape");
+    } catch (e) {
+      throw new Error("The index.json in the repo is not a store index.");
+    }
+    var stillListed = index.scripts.some(function (s) { return s && s.name === entry.name; });
+    if (!stillListed) {
+      throw new Error("“" + entry.name + "” is no longer in the store index.");
+    }
+    /* 2 — remove ONLY this entry, then PUT the index back. The index
+       goes first on purpose: if the file delete then fails, the file
+       is just an orphan in scripts/ — harmless — while the store never
+       points at a missing file. */
+    index.scripts = index.scripts.filter(function (s) { return !s || s.name !== entry.name; });
+    index.updatedAt = todayISO();
+    await ghPutFile("index.json", JSON.stringify(index, null, 2) + "\n", "Remove " + entry.name + " from store", cfg, indexFile.sha, logFn);
+    /* 3 — delete the file (fresh file id, fetched right before). A
+       failure here is a PARTIAL failure: the index is already updated,
+       so the store no longer lists the script — reported honestly
+       below, not as a success. */
+    var fileGone = false;
+    var fileError = null;
+    try {
+      logFn("GET " + scriptPath + " …");
+      var scriptFile = await ghGetFile(scriptPath, cfg);
+      if (!scriptFile.exists) {
+        logFn("GET " + scriptPath + " … 404 (the file was already gone)");
+        fileGone = true;
+      } else {
+        await ghDeleteFile(scriptPath, "Remove script file: " + filename, cfg, scriptFile.sha, logFn);
+      }
+    } catch (err) {
+      fileError = err instanceof Error ? err.message : String(err);
+    }
+    /* 4 — clear the jsDelivr cache for both files (best-effort, same
+       as publish/upgrade — a failed purge never fails the delete). */
+    await purgeFile("index.json", cfg, logFn);
+    if (!fileError && !fileGone) await purgeFile(scriptPath, cfg, logFn);
+    saveConfig(cfg);
+    logFn("Done.");
+    deleteArmedName = null;
+    deleteBusy = false;
+    /* Drop the upgrade card if it was open for the deleted script. */
+    if (upgradeTarget && upgradeTarget.entry && upgradeTarget.entry.name === entry.name) {
+      upgradeTarget = null;
+      $("upgradeCard").hidden = true;
+    }
+    /* Update the list from the delete result itself (the entry is
+       gone from the index that was just PUT). A refresh click is not
+       used here on purpose: the Live Scripts refresh clears
+       #liveError first, which would erase the partial-failure message
+       below; the next Load live scripts re-fetches from the API. */
+    liveEntries = liveEntries.filter(function (s) { return !s || s.name !== entry.name; });
+    renderLiveList();
+    if (fileError) {
+      show($("liveError"), "Removed “" + entry.name + "” from the store, but the file could not be deleted — " + fileError + " You can delete " + scriptPath + " manually on GitHub.");
+    } else if (fileGone) {
+      show($("delOk"), "Deleted “" + entry.name + "” — removed from the store. Its file was already gone from scripts/.");
+    } else {
+      show($("delOk"), "Deleted “" + entry.name + "” — removed from the store and its file deleted.");
+    }
+  } catch (err) {
+    logFn("FAILED: " + (err instanceof Error ? err.message : String(err)));
+    deleteArmedName = null;
+    deleteBusy = false;
+    renderLiveList();
+    /* Everything above the file delete runs before any write, so a
+       failure here means NOTHING was deleted — say so plainly. */
+    show($("liveError"), (err instanceof Error ? err.message : String(err)) + " Nothing was deleted.");
+  }
+}
 
 /* --- Upgrade flow --- */
 
