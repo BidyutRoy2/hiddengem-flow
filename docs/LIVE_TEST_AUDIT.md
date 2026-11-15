@@ -458,3 +458,32 @@ A 23-path capability probe (`probe-cap.cjs`, same world) confirmed the map exact
 1. **The real GitHub push** — unchanged: no real token, no real publish/upgrade/purge has ever run.
 2. **Owner's own-machine test** — the Load Unpacked steps on the owner's Brave remain the real end-to-end check.
 3. **The relay when host access is granted per-site (not `*://*/*`)** — probe21 granted `*://*/*` via one script; per-pattern registration failure/retry for a single-site grant was not exercised live (the code path is the same `registerContentScripts` call, caught per pattern).
+
+## Probe 22 (2026-11-15): raw-first store fetch (finding A-05)
+
+`~/workspace/hgf-live-test/probe22-rawfirst.cjs`, real Chrome for Testing 158 under Xvfb :99, fresh profile, rebuilt extension (`.output/chrome-mv3`, typecheck clean, `wxt build` OK). The live store now has **4 scripts**; jsDelivr `@main` was verified stale at the same moment (curl: 1 script after 5 "finished" purges) while raw returned all 4 — so a RAW badge plus 4 cards is proof the raw-first path was actually taken, not just code-read.
+
+| Check | Result |
+|---|---|
+| Dashboard loads (Script Store tab) | PASS |
+| Live store loads 4 scripts (Store fetched) | PASS — "4 scripts · Store fetched: 11/15/2026, 1:16:59 AM" (the VM clock is UTC; on the owner's machine it shows his local time) |
+| Source badge is raw.githubusercontent (raw-first path taken) | PASS — badge "raw.githubusercontent" (rendered as `RAW.GITHUBUSERCONTENT`) |
+| All 4 store scripts listed | PASS — 9Chain Virtual Node Auto, Markdown Link Copier, Titan Exchange Auto Trader Pro by HiddenGem, Universal DOM Diagnostic v2.0 — TM Only (default sort Recently updated) |
+| Store detail opens + scan (live code fetched) | PASS — 100/100 · Grade A |
+| Add script → Confirm install → installed message | PASS — "Installed as “Markdown Link Copier” v1.0.0 — see the Scripts tab." |
+| Markdown Link Copier listed in Scripts tab | PASS |
+| 0 page errors, 0 console errors | PASS |
+
+**Probe22 notes (harness, not extension bugs):**
+- Run 1 failed 3 checks (empty meta, empty badge, no cards) — the first fetch through the relay in a fresh profile was still in flight at 10 s (the button still said "Loading…"; the fetch completed a few seconds later and the install flow then passed in the same run). The probe now polls the meta line for up to 60 s instead of a fixed sleep. Run 2: **11 PASS / 0 FAIL**.
+- The uploader's raw-first change was code-only in this probe (its no-token Live Scripts read was not re-run; the extension path is the verified one). The token path (GitHub API) was untouched by the fix.
+
+### Screenshots (probe22)
+
+`50-store-raw-4-scripts.png` (RAW.GITHUBUSERCONTENT badge + "4 scripts · Store fetched"), `51-store-mdlink-installed-raw.png` (detail: 100/100 Grade A + installed message).
+
+### What is still NOT verified (honest)
+
+1. **The uploader's raw-first Live Scripts read** — the code path changed identically (raw first, jsDelivr fallback), but only the extension's Load store was exercised live in probe22.
+2. **Owner's own-machine test** — unchanged: the Load Unpacked steps on the owner's Brave remain the real end-to-end check.
+3. **jsDelivr catching up** — irrelevant to the fix now (raw is first), but jsDelivr's own `@main` copy may still show 1 script until its branch cache refreshes on its own schedule.
