@@ -623,12 +623,18 @@ function importFromCode(filename) {
   if (meta.description) $("fDesc").value = meta.description;
   if (meta.author) $("fAuthor").value = meta.author;
   if (meta.matches.length > 0) $("fMatches").value = meta.matches.join("\n");
-  if (!meta.name && !meta.version && meta.matches.length === 0) {
-    show($("msgWarn"), "No ==UserScript== block found in " + (filename ? "“" + filename + "”" : "this code") + " — the fields were left as-is. Add a name and @match lines above; the publish adds a header so the file is a valid userscript (only if the source is JavaScript).");
-  } else {
-    show($("msgOk"), "Details read from the code" + (filename ? " (“" + filename + "”)" : "") + ". Check the fields above, then publish or download below.");
+  var v = validate(readFields());
+  if (v.ok && !v.warning) {
+    // validate() clears all messages, so the Import outcome goes AFTER it —
+    // otherwise the confirmation is erased in the same handler (BUG-1).
+    // When validate already shows an error or the no-@match warning, that
+    // message is the feedback and the Import outcome is not added.
+    if (!meta.name && !meta.version && meta.matches.length === 0) {
+      show($("msgWarn"), "No ==UserScript== block found in " + (filename ? "“" + filename + "”" : "this code") + " — the fields were left as-is. Add a name and @match lines above; the publish adds a header so the file is a valid userscript (only if the source is JavaScript).");
+    } else {
+      show($("msgOk"), "Details read from the code" + (filename ? " (“" + filename + "”)" : "") + ". Check the fields above, then publish or download below.");
+    }
   }
-  validate(readFields());
   refreshPreview();
 }
 
