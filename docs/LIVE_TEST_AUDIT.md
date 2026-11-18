@@ -710,3 +710,9 @@ Focused live check (`telegram-btn-check.cjs`, real Chrome 158, fresh profile) af
 - Smokes 1016/1016 (studio 119/119 — was 87, +32 extractor/diagnostic/cap tests; rest unchanged).
 - Audit findings A-84…A-88 (see `docs/AUDIT.md`, v2.1.1 section): A-84 live failure fixed, A-85 diagnosable failure fixed, A-86 nested-fence residual accepted, A-87 cap holds on every path, A-88 token-cap shape verified.
 - Probe notes (harness, not the extension): the first screenshots (265, 267) showed only the top of the Studio page — the draft box and the status line sit below the fold, so the probe was re-run with `scrollIntoView` shots (265b, 267b) that actually show the draft and the diagnostic. The re-run (probe35-shots.cjs) also passed 23/23.
+
+## Probe 35/36 — v3.0.0 final release (2026-11-18)
+
+**What changed:** version bump only from v2.1.3 — no code changes. Version 3.0.0 in `package.json`, the built manifest, the dashboard/footer strings, `BUILD_DATE` 2026-11-18T09:16:30Z. Zip `hiddengem-flow-v3.0.0-20261118.zip` (1,257,299 B, sha256 `f61b1f86cf6c58b5edc0a29b7c236679412fd5604ce854a7ff0d9838a9d16f37`).
+
+**Verification (real Chrome 158, packaged public zip): probe35-public 21/21 + probe36-store-upd 12/12.** A-89 holds: `UPDATE-CHECK-RESULT: "You are up to date."`, `BANNER-AFTER-CHECK: hidden=true`, no banner on open. The store rendered all 4 live scripts. probe37-labels was NOT re-run on v3.0.0 — its v2.1.3 16/16 stands, because the label fix is unchanged by a version bump. Smokes 1026/1026 (kept log, 0 FAIL). Logs: `hgf-live-test/verification-20261118/probe35-public-v300.log`, `probe36-store-upd-v300.log`. Audit A-100…A-108 (see `docs/AUDIT.md`, v3.0.0 section).

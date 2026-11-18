@@ -5,7 +5,7 @@
 <p align="center"><strong>Your daily task websites and userscripts, one flow.</strong></p>
 
 <p align="center">
-  <a href="https://github.com/BidyutRoy2/hiddengem-flow"><img src="https://img.shields.io/badge/version-2.1.1-blue" alt="Version 2.1.1"></a>
+  <a href="https://github.com/BidyutRoy2/hiddengem-flow"><img src="https://img.shields.io/badge/version-3.0.0-blue" alt="Version 3.0.0"></a>
   <img src="https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white" alt="Chrome Manifest V3">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">
   <img src="https://img.shields.io/badge/data-local--first-00D084" alt="Local-first, no tracking">
@@ -189,6 +189,8 @@ docs/                      # audit, live-test audit, live-test screenshots
 ```
 
 ## Status
+
+**v3.0.0 — Final release (version 3.0.0).** The v2.1.3 build re-versioned as the final release — no code changes, same verification (smokes 1026/1026; live probes probe35 21/21, probe36 12/12; probe37-labels 16/16 inherited from v2.1.3). v2.1.2 and v2.1.3 were dev builds, superseded before delivery and never published. The v3.0.0 release is published separately — until it is live, the download above still points at the current live release (v2.1.1-dev-20261118). Live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`).
 
 **v2.1.1 — Published as a pre-release.** The build is live at [`v2.1.1-dev-20261118`](https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v2.1.1-dev-20261118). Live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`).
 

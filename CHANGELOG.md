@@ -1,7 +1,7 @@
 # Changelog — HiddenGem Flow
 
 ## v3.0.0 — Final release (version 3.0.0)
-- **Version bump from v2.1.3, no code changes.** This is the v2.1.3 build re-versioned as 3.0.0 — the final release version. Nothing else changed: same features, same fixes, same verification (smokes 1026/1026; live probes 21/21, 11/11 and 16/16).
+- **Version bump from v2.1.3, no code changes.** This is the v2.1.3 build re-versioned as 3.0.0 — the final release version. Nothing else changed: same features, same fixes, same verification (smokes 1026/1026; live probes probe35 21/21, probe36 12/12; probe37-labels 16/16 inherited from v2.1.3 (label fix unchanged)).
 - v2.1.3 was delivered for live test and never published; v3.0.0 is the release that ships. See the v2.1.3 entry below for what is in it.
 
 ## v2.1.3 — Settings label fix (A-98) (dev build 2026-11-18, version 2.1.3, not published yet)
