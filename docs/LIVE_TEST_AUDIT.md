@@ -716,3 +716,30 @@ Focused live check (`telegram-btn-check.cjs`, real Chrome 158, fresh profile) af
 **What changed:** version bump only from v2.1.3 — no code changes. Version 3.0.0 in `package.json`, the built manifest, the dashboard/footer strings, `BUILD_DATE` 2026-11-18T09:16:30Z. Zip `hiddengem-flow-v3.0.0-20261118.zip` (1,257,299 B, sha256 `f61b1f86cf6c58b5edc0a29b7c236679412fd5604ce854a7ff0d9838a9d16f37`).
 
 **Verification (real Chrome 158, packaged public zip): probe35-public 21/21 + probe36-store-upd 12/12.** A-89 holds: `UPDATE-CHECK-RESULT: "You are up to date."`, `BANNER-AFTER-CHECK: hidden=true`, no banner on open. The store rendered all 4 live scripts. probe37-labels was NOT re-run on v3.0.0 — its v2.1.3 16/16 stands, because the label fix is unchanged by a version bump. Smokes 1026/1026 (kept log, 0 FAIL). Logs: `hgf-live-test/verification-20261118/probe35-public-v300.log`, `probe36-store-upd-v300.log`. Audit A-100…A-108 (see `docs/AUDIT.md`, v3.0.0 section).
+
+## Probe 35/36 — v3.0.0 released-asset live test (2026-11-18)
+
+**What changed:** nothing in the extension — this round tested the RELEASED
+asset itself, the zip downloaded from the live v3.0.0 release (id 449770087,
+pre-release), not the local build.
+
+**Verification (real Chrome 158, released zip): probe35-release 21/21 +
+probe36-release 12/12, 0 FAIL in both.**
+- Released-asset byte-match VERIFIED: downloaded zip 1,257,299 B, sha256
+  `f61b1f86cf6c58b5edc0a29b7c236679412fd5604ce854a7ff0d9838a9d16f37` — exactly
+  the delivered zip.
+- probe35-release 21/21: manifest 3.0.0, the 9 expected permissions, float +
+  side panel + popup all open on real toolbar clicks, new tab is the browser
+  default. Log: `hgf-live-test/verification-20261118/probe35-public-v300-release.log`.
+- probe36-release 12/12: update check "You are up to date.", no banner on
+  open or after the manual check (A-89 holds); the store rendered all 4 live
+  scripts. Log: `hgf-live-test/verification-20261118/probe36-store-upd-v300-release.log`.
+- Smokes REUSED, not re-run: `smoke-20261118-v300.log`, 1026 PASS lines, 0
+  FAIL lines (counted independently).
+- Screenshots 316–322 in `docs/live-test/`. No bugs found.
+- Install-guide 05 screenshot re-shot at v3.0.0
+  (`docs/install-guide/05-extension-loaded.png`: Version 3.0.0, Developer
+  mode ON, extension ID `dbkefogckhiidhhpfjkgnlkolkgfgfon`, sha256
+  `b693795a33791d9f4c7a73451154fa355dccb1804362b5b999b893d5b3d8b504`, 108,456
+  bytes). Audit A-100…A-108 (see `docs/AUDIT.md`, v3.0.0 section + the
+  released-asset section).

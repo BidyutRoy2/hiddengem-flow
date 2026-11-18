@@ -4,13 +4,12 @@ import { defineConfig } from "wxt";
 // Firefox comes later; the config is written so the Firefox target can be
 // added with a browser flag, no code changes.
 export default defineConfig({
-  // v2.1.0: two builds, one codebase. HGF_OWNER_BUILD=1 builds the
-  // OWNER variant (with the Script Studio); anything else builds the
-  // PUBLIC variant (no Studio code at all). The flag is a Vite
-  // `define`, so the bundler replaces it with a literal and drops
-  // the dead branch — including the Studio module's dynamic import —
-  // from the public bundle. The acceptance test is a grep of the
-  // built public output for "Script Studio": zero hits.
+  // v2.1.0: a build-time flag selects which optional modules are
+  // included. The flag is a Vite `define`, so the bundler replaces
+  // it with a literal and drops the dead branch — including the
+  // optional module's dynamic import — from the shipped bundle.
+  // The acceptance test is a grep of the built output for the
+  // module's display name: zero hits.
   vite: () => ({
     define: {
       __HGF_OWNER_BUILD__: JSON.stringify(process.env.HGF_OWNER_BUILD === "1"),
