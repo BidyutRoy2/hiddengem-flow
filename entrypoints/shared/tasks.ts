@@ -13,6 +13,8 @@
 // UI falls back to a letter tile. No task data, no analytics, no telemetry
 // is ever sent anywhere.
 
+import { sanitizeReminder, type TaskReminder } from "./reminders";
+
 export interface Task {
   id: string;
   name: string;
@@ -21,6 +23,34 @@ export interface Task {
   pinned: boolean;
   createdAt: number;
   lastOpenedAt?: number;
+  /** v1.4 (#5): optional due-time reminder ("HH:MM" + repeat days). */
+  reminder?: TaskReminder;
+  /** v1.4 (#16): a checklist tick completes the task. */
+  completed?: boolean;
+  completedAt?: number;
+}
+
+/** Clean one stored task: reminder must be a valid "HH:MM" or it is dropped; completed is a boolean. Pure. */
+export function sanitizeTask(raw: unknown): Task | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const t = raw as Task;
+  if (typeof t.id !== "string" || typeof t.name !== "string" || typeof t.url !== "string") return null;
+  const clean: Task = {
+    id: t.id,
+    name: t.name,
+    url: t.url,
+    ...(typeof t.favicon === "string" ? { favicon: t.favicon } : {}),
+    pinned: t.pinned === true,
+    createdAt: typeof t.createdAt === "number" && Number.isFinite(t.createdAt) ? t.createdAt : 0,
+    ...(typeof t.lastOpenedAt === "number" && Number.isFinite(t.lastOpenedAt) ? { lastOpenedAt: t.lastOpenedAt } : {}),
+  };
+  const reminder = sanitizeReminder((t as { reminder?: unknown }).reminder);
+  if (reminder) clean.reminder = reminder;
+  if (t.completed === true) {
+    clean.completed = true;
+    if (typeof t.completedAt === "number" && Number.isFinite(t.completedAt)) clean.completedAt = t.completedAt;
+  }
+  return clean;
 }
 
 export const TASKS_KEY = "hiddengemflow.tasks.v1";
@@ -108,12 +138,13 @@ export function isDuplicateUrl(existing: Task[], rawUrl: string, excludeId?: str
  * tests can pin them; callers normally omit both and pass the current
  * task list as `existing` (omit it only when there is no list yet).
  */
-export function createTask(name: string, rawUrl: string, now: number = Date.now(), id: string = newId(), existing: Task[] = []): Task {
+export function createTask(name: string, rawUrl: string, now: number = Date.now(), id: string = newId(), existing: Task[] = [], extra?: { reminder?: TaskReminder; completed?: boolean }): Task {
   const cleanName = (name ?? "").trim();
   if (!cleanName) throw new Error("Give the site a name.");
   const url = normalizeUrl(rawUrl);
   if (!url) throw new Error("That URL does not look valid — use an http(s) address, e.g. example.com or https://example.com.");
   if (isDuplicateUrl(existing, rawUrl)) throw new Error("This site is already saved.");
+  const reminder = extra?.reminder ? sanitizeReminder(extra.reminder) : null;
   return {
     id,
     name: cleanName,
@@ -121,6 +152,8 @@ export function createTask(name: string, rawUrl: string, now: number = Date.now(
     favicon: buildFaviconUrl(url) ?? undefined,
     pinned: false,
     createdAt: now,
+    ...(reminder ? { reminder } : {}),
+    ...(extra?.completed === true ? { completed: true, completedAt: now } : {}),
   };
 }
 
@@ -139,7 +172,7 @@ export function sortTasks(tasks: Task[]): Task[] {
  * unchanged is fine). Returns a new array; the original is untouched.
  * Unknown id → the array is returned unchanged.
  */
-export function updateTask(tasks: Task[], id: string, patch: { name?: string; url?: string }): Task[] {
+export function updateTask(tasks: Task[], id: string, patch: { name?: string; url?: string; reminder?: TaskReminder | null; completed?: boolean }): Task[] {
   let nextName: string | undefined;
   let nextUrl: string | undefined;
   let nextFavicon: string | undefined;
@@ -154,13 +187,56 @@ export function updateTask(tasks: Task[], id: string, patch: { name?: string; ur
     nextUrl = normalized;
     nextFavicon = buildFaviconUrl(nextUrl) ?? undefined;
   }
+  // v1.4: reminder is set with a valid { time, days } or cleared with
+  // null; an invalid reminder value is refused, not silently dropped.
+  let nextReminder: TaskReminder | null | undefined;
+  if (patch.reminder !== undefined) {
+    if (patch.reminder === null) nextReminder = null;
+    else {
+      const clean = sanitizeReminder(patch.reminder);
+      if (!clean) throw new Error("That reminder time is not valid — use HH:MM, e.g. 09:00.");
+      nextReminder = clean;
+    }
+  }
   return tasks.map((t) => {
     if (t.id !== id) return t;
-    return {
+    const next: Task = {
       ...t,
       ...(nextName !== undefined ? { name: nextName } : {}),
       ...(nextUrl !== undefined ? { url: nextUrl, favicon: nextFavicon } : {}),
+      ...(nextReminder !== undefined ? (nextReminder === null ? { reminder: undefined } : { reminder: nextReminder }) : {}),
+      ...(patch.completed !== undefined
+        ? patch.completed
+          ? { completed: true, completedAt: Date.now() }
+          : { completed: undefined, completedAt: undefined }
+        : {}),
     };
+    // Drop keys set to undefined so stored tasks stay clean.
+    if (next.reminder === undefined) delete next.reminder;
+    if (next.completed === undefined) {
+      delete next.completed;
+      delete next.completedAt;
+    }
+    return next;
+  });
+}
+
+/** Mark a task completed (a checklist tick does this). Unknown id → unchanged. Pure. */
+export function markTaskCompleted(tasks: Task[], id: string, now: number = Date.now()): Task[] {
+  return tasks.map((t) => (t.id === id && t.completed !== true ? { ...t, completed: true, completedAt: now } : t));
+}
+
+/** Toggle a task's completed flag. Unknown id → unchanged. Pure. */
+export function toggleTaskCompleted(tasks: Task[], id: string, now: number = Date.now()): Task[] {
+  return tasks.map((t) => {
+    if (t.id !== id) return t;
+    if (t.completed === true) {
+      const next = { ...t };
+      delete next.completed;
+      delete next.completedAt;
+      return next;
+    }
+    return { ...t, completed: true, completedAt: now };
   });
 }
 
@@ -211,17 +287,14 @@ function storageAvailable(): boolean {
   }
 }
 
-/** Load all saved tasks; [] when nothing is saved or storage is unavailable. */
+/** Load all saved tasks; [] when nothing is saved or storage is unavailable. Stored tasks are sanitized (v1.4: a bad reminder is dropped, never trusted). */
 export async function loadTasks(): Promise<Task[]> {
   if (!storageAvailable()) return [];
   try {
     const data = await chrome.storage.local.get(TASKS_KEY);
     const raw = data?.[TASKS_KEY];
     if (!Array.isArray(raw)) return [];
-    return raw.filter(
-      (t: unknown): t is Task =>
-        !!t && typeof (t as Task).id === "string" && typeof (t as Task).name === "string" && typeof (t as Task).url === "string",
-    );
+    return raw.map((t: unknown) => sanitizeTask(t)).filter((t): t is Task => t !== null);
   } catch {
     return [];
   }
@@ -284,6 +357,11 @@ export interface TasksBackupEntry {
   pinned: boolean;
   createdAt: number;
   lastOpenedAt?: number;
+  /** v1.4: the task's reminder, when set (old backups have none). */
+  reminder?: TaskReminder;
+  /** v1.4: completed tasks stay completed after an import. */
+  completed?: boolean;
+  completedAt?: number;
 }
 
 export interface TasksBackup {
@@ -314,6 +392,8 @@ export function buildTasksBackup(tasks: Task[], exportedAt: string = new Date().
       pinned: t.pinned,
       createdAt: t.createdAt,
       ...(typeof t.lastOpenedAt === "number" ? { lastOpenedAt: t.lastOpenedAt } : {}),
+      ...(t.reminder ? { reminder: t.reminder } : {}),
+      ...(t.completed === true ? { completed: true, ...(typeof t.completedAt === "number" ? { completedAt: t.completedAt } : {}) } : {}),
     })),
   };
 }
@@ -350,23 +430,28 @@ export function parseTasksBackup(parsed: unknown, now: number = Date.now()): Tas
   const entries: TasksBackupEntry[] = [];
   let usable = 0;
   for (const raw of p.tasks) {
-    const obj = raw !== null && typeof raw === "object" ? (raw as { name?: unknown; url?: unknown; pinned?: unknown; createdAt?: unknown; lastOpenedAt?: unknown }) : null;
+    const obj = raw !== null && typeof raw === "object" ? (raw as { name?: unknown; url?: unknown; pinned?: unknown; createdAt?: unknown; lastOpenedAt?: unknown; reminder?: unknown; completed?: unknown; completedAt?: unknown }) : null;
     const name = obj ? String(obj.name ?? "").trim() : "";
     const url = obj ? normalizeUrl(String(obj.url ?? "")) : null;
     if (!name || !url) continue;
     usable++;
     const createdAtRaw = obj?.createdAt;
     const lastOpenedRaw = obj?.lastOpenedAt;
+    const reminder = sanitizeReminder(obj?.reminder);
+    const completedRaw = obj?.completed;
+    const completedAtRaw = obj?.completedAt;
     entries.push({
       name,
       url,
       pinned: obj?.pinned === true,
       createdAt: typeof createdAtRaw === "number" && Number.isFinite(createdAtRaw) ? createdAtRaw : now,
       ...(typeof lastOpenedRaw === "number" && Number.isFinite(lastOpenedRaw) ? { lastOpenedAt: lastOpenedRaw } : {}),
+      ...(reminder ? { reminder } : {}),
+      ...(completedRaw === true ? { completed: true, ...(typeof completedAtRaw === "number" && Number.isFinite(completedAtRaw) ? { completedAt: completedAtRaw } : {}) } : {}),
     });
   }
   if (usable !== p.tasks.length) {
-    return { ok: false, error: `The backup has ${p.tasks.length} tasks, but only ${usable} are usable — the rest were skipped. Check the file before importing.` };
+    return { ok: false, error: `The backup has ${p.tasks.length} tasks, but only ${usable} are usable — nothing was imported. Check the file before importing.` };
   }
   return { ok: true, tasks: entries };
 }
@@ -401,6 +486,8 @@ export function mergeTasksBackup(existing: Task[], incoming: TasksBackupEntry[])
       pinned: entry.pinned,
       createdAt: entry.createdAt,
       ...(typeof entry.lastOpenedAt === "number" ? { lastOpenedAt: entry.lastOpenedAt } : {}),
+      ...(entry.reminder ? { reminder: entry.reminder } : {}),
+      ...(entry.completed === true ? { completed: true, ...(typeof entry.completedAt === "number" ? { completedAt: entry.completedAt } : {}) } : {}),
     });
     imported++;
   }

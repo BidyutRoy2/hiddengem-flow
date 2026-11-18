@@ -5,93 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>HiddenGem Flow</title>
     <link rel="icon" href="/icons/icon32.png" />
-    <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <div class="hgf-page">
-      <header>
-        <svg viewBox="0 0 32 32" width="20" height="20" aria-hidden="true"><path d="M16 2 28 12 16 30 4 12Z" fill="#00D084"/><path d="M16 2 22 12 16 30 10 12Z" fill="#0AAE74"/><path d="M16 2 28 12 16 12Z" fill="#5FE3B0"/><path d="M13 4C15 9 20 13 20 18s-5 8-7 10" fill="none" stroke="#FFC24B" stroke-width="2" stroke-linecap="round"/></svg>
-        <span class="title">HiddenGem Flow</span>
-        <button type="button" data-act="close" title="Close" aria-label="Close">✕</button>
-      </header>
-      <div class="body">
-        <button type="button" class="upd-line" data-update hidden></button>
-        <div class="site">No website open — this is the standalone window.</div>
-        <div class="tabs" data-tabs>
-          <button type="button" data-float-tab="tasks" class="active">Daily Tasks</button>
-          <button type="button" data-float-tab="scripts">Scripts</button>
-          <button type="button" data-float-tab="notes">Notepad</button>
-        </div>
-        <section class="panel" data-panel="tasks">
-          <h3>Daily Tasks</h3>
-          <button type="button" class="mini-add" data-act="add-current" disabled>＋ Add current site</button>
-          <p class="hint">No website is open here, so “Add current site” is off — add one by hand below, or open a website and click the toolbar icon again.</p>
-          <button type="button" class="mini-add" data-act="add-task">＋ Add a task</button>
-          <div class="mini-form" data-form="add-task" hidden>
-            <input type="text" data-in="name" placeholder="Name" autocomplete="off" maxlength="120" aria-label="Site name" />
-            <input type="text" data-in="url" placeholder="URL" autocomplete="off" inputmode="url" maxlength="2048" aria-label="Site URL" />
-            <p class="mini-err" data-err="add-task" hidden></p>
-            <div class="mini-row">
-              <button type="button" class="mini-save" data-act="save-task">Save</button>
-              <button type="button" class="mini-cancel" data-act="cancel-task">Cancel</button>
-            </div>
-          </div>
-          <ul class="task-mini" data-list="tasks"></ul>
-          <p class="empty" data-empty="tasks">No task sites saved yet — add one above, or from the Dashboard.</p>
-          <button type="button" class="open-all" data-act="open-all">Open All</button>
-          <p class="open-status" data-status="open" hidden></p>
-          <a class="view-all" data-act="view-all">View all in Dashboard →</a>
-        </section>
-        <section class="panel" data-panel="scripts" hidden>
-          <h3>Active Scripts</h3>
-          <div class="us-status" data-us-status>
-            <span data-us-text>User Scripts: checking…</span>
-            <button type="button" class="us-enable" data-act="us-enable" hidden>Open extension details to enable</button>
-          </div>
-          <p class="script-banner" data-banner="userscripts" hidden><strong>Allow User Scripts</strong> is off — scripts are saved but never run. Enable it: chrome://extensions → HiddenGem Flow → Details → Allow User Scripts (toggle ON), then reload the page.</p>
-          <ul class="script-mini" data-list="scripts"></ul>
-          <p class="empty" data-empty="scripts">No scripts installed yet.</p>
-          <p class="script-note" data-note="scripts" hidden></p>
-        </section>
-        <section class="panel" data-panel="notes" hidden>
-          <h3>Notepad</h3>
-          <div data-notes-list-view>
-            <input type="text" class="note-search" data-notes-search placeholder="Search notes… (title, text, or tag)" autocomplete="off" aria-label="Search notes" />
-            <button type="button" class="note-new" data-notes-new>＋ New note</button>
-            <ul class="note-list" data-notes-list></ul>
-            <p class="empty" data-notes-empty>No notes yet — tap + New note to write your first one.</p>
-            <p class="note-count" data-notes-count hidden></p>
-            <a class="view-all" data-notes-viewall>View all in Dashboard →</a>
-          </div>
-          <div class="note-editor" data-notes-editor hidden>
-            <h3 data-notes-editor-title>New note</h3>
-            <label>Title</label>
-            <input type="text" class="note-title-in" data-notes-title placeholder="Title" autocomplete="off" maxlength="120" aria-label="Note title" />
-            <label>Note</label>
-            <textarea class="note-body-in" data-notes-body rows="5" placeholder="Write it down…" aria-label="Note text"></textarea>
-            <label>Brand</label>
-            <div class="brand-row" data-notes-brand>
-              <button type="button" class="brand-pick" data-brand="HiddenGem">◆ HiddenGem</button>
-              <button type="button" class="brand-pick" data-brand="Personal">Personal</button>
-              <button type="button" class="brand-pick" data-brand="Work">Work</button>
-            </div>
-            <label>Tags</label>
-            <div class="tag-edit" data-notes-tags>
-              <input type="text" class="tag-add" data-notes-tag-input placeholder="+ add a tag" autocomplete="off" maxlength="20" aria-label="Add a tag" />
-            </div>
-            <div class="note-save-row">
-              <button type="button" class="note-save" data-notes-save>Save note</button>
-              <button type="button" class="note-cancel" data-notes-cancel>Cancel</button>
-            </div>
-            <p class="note-local">Saved on this browser only — notes never leave your computer.</p>
-          </div>
-        </section>
-        <div class="layout-panel" data-layout-panel hidden></div>
-        <a class="edit-layout" data-act="edit-layout">✎ Edit layout</a>
-        <button type="button" class="dash">Open Dashboard</button>
-        <div class="foot">HiddenGem Flow v1.1.0<br><a class="download-btn" href="https://github.com/BidyutRoy2/hiddengem-flow/releases" target="_blank" rel="noopener noreferrer" title="Download the latest HiddenGem Flow build"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Download HiddenGem Flow</a></div>
-      </div>
-    </div>
+    <!-- The UI is built by shared/float-page.ts (same module as the side panel). -->
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

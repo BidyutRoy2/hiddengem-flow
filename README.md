@@ -5,7 +5,7 @@
 <p align="center"><strong>Your daily task websites and userscripts, one flow.</strong></p>
 
 <p align="center">
-  <a href="https://github.com/BidyutRoy2/hiddengem-flow"><img src="https://img.shields.io/badge/version-1.1.0-blue" alt="Version 1.1.0"></a>
+  <a href="https://github.com/BidyutRoy2/hiddengem-flow"><img src="https://img.shields.io/badge/version-2.1.1-blue" alt="Version 2.1.1"></a>
   <img src="https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white" alt="Chrome Manifest V3">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">
   <img src="https://img.shields.io/badge/data-local--first-00D084" alt="Local-first, no tracking">
@@ -25,7 +25,7 @@
 1. Open `chrome://extensions` (or `brave://extensions`) → turn on **Developer mode**.
 2. Click **Load unpacked** and select the extracted folder.
 
-That's it — the floating window and dashboard are ready. Two grants are still needed before any userscript runs (see [Install](#install-load-unpacked)): turn **Allow User Scripts** ON in the extension's Details page, then **Grant site access** for each script's site. This is a dev build of v1.1.0 — the new version after the final v1.0.0.
+That's it — the floating window and dashboard are ready. Two grants are still needed before any userscript runs (see [Install](#install-load-unpacked)): turn **Allow User Scripts** ON in the extension's Details page, then **Grant site access** for each script's site. This is a dev build of v2.1.1 — v2.1.0 plus a fix for Script Studio Generate dropping chatty LLM replies (tolerant draft extraction + diagnosable errors + 4000-token cap) — plus the owner-only **Script Studio** (Dashboard tab: generate scripts with the cloud LLM or local templates, test a draft once on its real site without installing it, and publish to the Official Store), shipped as **two builds** — an owner build with the Studio and a public build with no Studio code at all. The Later tab's AI authoring section is removed entirely (its contents moved into the Studio). The v2.1.1 build is not published yet — the download above is still the latest published pre-release (v1.1.0-dev-20261115) until the owner approves it after live testing.
 
 ### Watch: install in 60 seconds
 
@@ -140,7 +140,7 @@ There is no `default_popup`, and no required host permission. Site access for us
 ## Honest limits
 
 - **Only JavaScript userscripts run in a browser page.** A file in another language can be opened and inspected, but it cannot run — the import says so plainly.
-- **Only four GM functions exist:** `GM_setValue`, `GM_getValue`, `GM_notification`, `GM_addStyle` (plus the `GM.*` object form). `GM_xmlhttpRequest`, `GM_openInTab`, `GM_download`, `GM_setClipboard`, `unsafeWindow` and the rest are **not** implemented — a script that calls one gets a scanner warning and a runtime error, never a fake.
+- **Six GM functions exist:** `GM_setValue`, `GM_getValue`, `GM_notification`, `GM_addStyle`, `GM_xmlhttpRequest` (only with `@grant GM_xmlhttpRequest` and the host in `@connect`), `GM_setClipboard` (plus the `GM.*` object form). `GM_openInTab`, `GM_download`, `unsafeWindow` and the rest are **not** implemented — a script that calls one gets a scanner warning and a runtime error, never a fake.
 - `GM_setValue` / `GM_getValue` values live in the page origin's `localStorage`, namespaced per script — visible to the page's own JavaScript. Never store secrets with `GM_*`.
 - The scanner is a regex heuristic: it strips comments and strings first, so it can miss obfuscated code and can flag a pattern used safely. It is a warning, never proof of safety.
 - The floating window cannot be *injected* on `chrome://`, Web Store, or other restricted pages — Chrome forbids it. Since v1.0.2 the click there opens the standalone popup instead.
@@ -176,7 +176,11 @@ docs/                      # audit, live-test audit, live-test screenshots
 
 ## Status
 
-**v1.1.0 — tabs, working Notepad and Edit layout.** v1.0.0 was the final first version. All phases are built, deep-audited and live click-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`). Firefox comes later, after Chrome is proven.
+**v2.0.3 — New-tab override removed.** The v1.5+ opt-in new-tab dashboard is gone: the `chrome_url_overrides` key is removed from the manifest, the new-tab page is deleted, and the Dashboard Settings card is removed — new tabs are the browser's default again. The dashboard is reached from the toolbar icon, Alt+Shift+D, or Open Dashboard. Everything else is unchanged from v2.0.2 (multi-provider cloud LLM + model auto-detection, Side Panel, backup, Flows, open-tabs tracking). A v2.0.2 backup still restores — its `newtab` key is simply ignored. Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); not published yet — it ships after the owner's final approval.
+
+**v2.0.0 — All remaining phases in one build.** Script-manager core (built-in editor, folders/tags/bulk/archive, install from URL, Allow User Scripts onboarding, GM_xmlhttpRequest + GM_setClipboard); routines (Flows, task reminders + scheduled Open All, Notes upgrade with Markdown/checklists/due dates, omnibox `flow` keyword); surfaces & depth (opt-in new-tab dashboard, sessions/workspaces, Smart Open All, per-site userstyles, scratchpad, site dossier, store collections, per-script storage viewer, local-file export, snooze queue); Later (scheduled scripts with per-script opt-in + run log, opt-in sync to the user's own WebDAV/Gist/Drive, AI authoring from local templates with BYOK cloud LLM opt-in). Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); not published yet — it ships after the owner's final approval.
+
+**v1.2.1 — Open-tabs tracking on all four surfaces.** A task with an open tab shows a green ● Open badge (×N when several) + a red ✕ Close button on its row — in the floating window, Side Panel, Popup and Dashboard; the badge focuses the tab, Close closes exactly those tabs, and the badge is URL-aware (navigating away drops it). Session-only, no new permissions. Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); not published yet — it ships after the owner's final approval. v1.2.0 was Side Panel + automatic backup + right-click menu + keyboard shortcuts + 3-way window mode; v1.1.0 was tabs, working Notepad and Edit layout; v1.0.0 was the final first version. Firefox comes later, after Chrome is proven.
 
 ## License
 

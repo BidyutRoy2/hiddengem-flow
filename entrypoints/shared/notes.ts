@@ -24,6 +24,8 @@ export const NOTES_MAX_TAGS = 10;
 /** A single tag is at most this many characters. */
 export const NOTE_TAG_MAX_LENGTH = 20;
 
+import { parseChecklistItems } from "./markdown";
+
 export interface Note {
   id: string;
   title: string;
@@ -33,6 +35,52 @@ export interface Note {
   pinned: boolean;
   createdAt: number;
   updatedAt: number;
+  /** v1.4 (#16): due date, ms timestamp — feeds the alarms system. */
+  dueAt?: number;
+  /** v1.4 (#16): the task this note is attached to, or null. */
+  linkedTaskId?: string | null;
+  /** v1.4 (#16): checklist item index (as a string key) → task id.
+   *  Ticking that item completes the linked task — the link is
+   *  explicit per item, never guessed from the text. */
+  checklistLinks?: Record<string, string>;
+}
+
+/** Clean a checklist-links map: keys must be non-negative integer
+ *  indexes that exist as checklist items in `body`, values must be
+ *  task ids that exist in `taskIds`. Anything else is dropped.
+ *  Pure. */
+export function sanitizeChecklistLinks(raw: unknown, body: string, taskIds: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  const items = parseChecklistItems(body);
+  const taskSet = new Set(taskIds);
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const idx = Number(key);
+    if (!Number.isInteger(idx) || idx < 0 || idx >= items.length) continue;
+    if (typeof value !== "string" || !value || !taskSet.has(value)) continue;
+    out[String(idx)] = value;
+  }
+  return out;
+}
+
+/** "Due today" / "Due tomorrow" / "Due 17 Nov" / "Overdue since yesterday" — "" when no due date. Pure. */
+export function formatDueDate(dueAt: number | undefined | null, now: number = Date.now()): string {
+  if (typeof dueAt !== "number" || !Number.isFinite(dueAt)) return "";
+  const d = new Date(dueAt);
+  const n = new Date(now);
+  const dayStart = (x: Date): number => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.round((dayStart(d) - dayStart(n)) / 86400000);
+  const datePart = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  if (diffDays === 0) return "Due today";
+  if (diffDays === 1) return "Due tomorrow";
+  if (diffDays === -1) return "Overdue since yesterday";
+  if (diffDays < 0) return `Overdue since ${datePart}`;
+  return `Due ${datePart}`;
+}
+
+/** True when the note is due and its due time has passed. Pure. */
+export function isNoteOverdue(dueAt: number | undefined | null, now: number = Date.now()): boolean {
+  return typeof dueAt === "number" && Number.isFinite(dueAt) && dueAt < now;
 }
 
 // ---------------------------------------------------------------------------
@@ -104,8 +152,9 @@ export function createNote(
   tags: unknown,
   now: number = Date.now(),
   id: string = newNoteId(),
+  extra?: { dueAt?: number; linkedTaskId?: string | null; checklistLinks?: Record<string, string> },
 ): Note {
-  return {
+  const note: Note = {
     id,
     title: (title ?? "").trim(),
     body: body ?? "",
@@ -115,6 +164,23 @@ export function createNote(
     createdAt: now,
     updatedAt: now,
   };
+  if (typeof extra?.dueAt === "number" && Number.isFinite(extra.dueAt)) note.dueAt = extra.dueAt;
+  if (typeof extra?.linkedTaskId === "string" && extra.linkedTaskId) note.linkedTaskId = extra.linkedTaskId;
+  if (extra?.checklistLinks && typeof extra.checklistLinks === "object") {
+    // Kept as given at creation — the shape (integer index keys,
+    // non-empty string values) is enforced here; the task ids are
+    // re-validated against real tasks on load and at tick time, so a
+    // link to a deleted task can never complete anything.
+    const clean: Record<string, string> = {};
+    for (const [key, value] of Object.entries(extra.checklistLinks)) {
+      const idx = Number(key);
+      if (!Number.isInteger(idx) || idx < 0) continue;
+      if (typeof value !== "string" || !value) continue;
+      clean[String(idx)] = value;
+    }
+    if (Object.keys(clean).length > 0) note.checklistLinks = clean;
+  }
+  return note;
 }
 
 /**
@@ -125,19 +191,42 @@ export function createNote(
 export function updateNote(
   notes: Note[],
   id: string,
-  patch: { title?: string; body?: string; brand?: unknown; tags?: unknown },
+  patch: { title?: string; body?: string; brand?: unknown; tags?: unknown; dueAt?: number | null; linkedTaskId?: string | null; checklistLinks?: Record<string, string> | null },
   now: number = Date.now(),
 ): Note[] {
   return notes.map((n) => {
     if (n.id !== id) return n;
-    return {
+    const next: Note = {
       ...n,
       ...(patch.title !== undefined ? { title: patch.title.trim() } : {}),
       ...(patch.body !== undefined ? { body: patch.body } : {}),
       ...(patch.brand !== undefined ? { brand: sanitizeBrand(patch.brand) } : {}),
       ...(patch.tags !== undefined ? { tags: normalizeTags(patch.tags) } : {}),
+      ...(patch.dueAt !== undefined ? (patch.dueAt === null ? {} : { dueAt: patch.dueAt }) : {}),
+      ...(patch.linkedTaskId !== undefined ? (patch.linkedTaskId ? { linkedTaskId: patch.linkedTaskId } : {}) : {}),
+      ...(patch.checklistLinks !== undefined ? (patch.checklistLinks ? { checklistLinks: patch.checklistLinks } : {}) : {}),
       updatedAt: now,
     };
+    // A null dueAt / linkedTaskId / checklistLinks clears the field —
+    // the spread above omits it, so drop the inherited key too.
+    if (patch.dueAt === null) delete next.dueAt;
+    if (patch.linkedTaskId === null || patch.linkedTaskId === "") delete next.linkedTaskId;
+    if (patch.checklistLinks === null) delete next.checklistLinks;
+    // A body edit can orphan checklist links (the line moved or is no
+    // longer a checklist item) — drop links whose index no longer
+    // parses as a checklist item. Task-id validity is re-checked at
+    // tick time against live tasks.
+    if (patch.body !== undefined && next.checklistLinks) {
+      const items = parseChecklistItems(next.body);
+      const kept: Record<string, string> = {};
+      for (const [key, value] of Object.entries(next.checklistLinks)) {
+        const idx = Number(key);
+        if (Number.isInteger(idx) && idx >= 0 && idx < items.length && typeof value === "string" && value) kept[key] = value;
+      }
+      if (Object.keys(kept).length > 0) next.checklistLinks = kept;
+      else delete next.checklistLinks;
+    }
+    return next;
   });
 }
 
@@ -237,16 +326,32 @@ export async function loadNotes(): Promise<Note[]> {
       .map((t) => {
         const createdAt = typeof t.createdAt === "number" && Number.isFinite(t.createdAt) ? t.createdAt : now;
         const updatedAt = typeof t.updatedAt === "number" && Number.isFinite(t.updatedAt) ? t.updatedAt : createdAt;
-        return {
+        const body = typeof t.body === "string" ? t.body : "";
+        const note: Note = {
           id: t.id as string,
           title: typeof t.title === "string" ? t.title : "",
-          body: typeof t.body === "string" ? t.body : "",
+          body,
           brand: sanitizeBrand(t.brand),
           tags: normalizeTags(t.tags),
           pinned: t.pinned === true,
           createdAt,
           updatedAt,
-        } satisfies Note;
+        };
+        if (typeof t.dueAt === "number" && Number.isFinite(t.dueAt)) note.dueAt = t.dueAt;
+        if (typeof t.linkedTaskId === "string" && t.linkedTaskId) note.linkedTaskId = t.linkedTaskId;
+        if (t.checklistLinks && typeof t.checklistLinks === "object" && !Array.isArray(t.checklistLinks)) {
+          // Index shape only here — task ids are re-validated at tick
+          // time against live tasks, so a stale link is inert.
+          const clean: Record<string, string> = {};
+          for (const [key, value] of Object.entries(t.checklistLinks as Record<string, unknown>)) {
+            const idx = Number(key);
+            if (!Number.isInteger(idx) || idx < 0) continue;
+            if (typeof value !== "string" || !value) continue;
+            clean[String(idx)] = value;
+          }
+          if (Object.keys(clean).length > 0) note.checklistLinks = clean;
+        }
+        return note;
       });
   } catch {
     return [];

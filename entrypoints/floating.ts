@@ -42,6 +42,27 @@ import {
 } from "./shared/float-layout";
 import { applyFloatLayoutToTabs, mountFloatLayoutEditor } from "./shared/float-layout-ui";
 import { RELEASES_PAGE_URL, UPDATE_KEY, isUpdateAvailable, loadUpdateRecord } from "./shared/updates";
+import { BACKUP_KEY, formatBackupChip, loadBackupState } from "./shared/backup";
+import {
+  MSG_OPEN_TABS_CHANGED,
+  closeOpenTaskTabs,
+  createCloseOpenTabsButton,
+  createOpenBadge,
+  focusOpenTaskTabs,
+  openTabsCount,
+  requestOpenTabs,
+  type OpenTabsMap,
+} from "./shared/open-tabs";
+import {
+  MSG_OPEN_MODE,
+  WINDOW_MODE_KEY,
+  clearOpenTabHint,
+  loadWindowMode,
+  readOpenTabHint,
+  saveWindowMode,
+  windowModeLabel,
+  type WindowMode,
+} from "./shared/window-mode";
 
 // HiddenGem Flow — floating window (Phase 4: + Smart Notification Bridge).
 //
@@ -84,6 +105,19 @@ const WIDTH = 320;
 // (listener registered once in buildWindow).
 const floatingRefreshers: Array<() => Promise<void>> = [];
 let floatingStorageListenerAdded = false;
+
+// v1.2.0: the float that SET the side-panel mode keeps itself open
+// with the hint; every OTHER open float removes itself when the mode
+// changes to sidepanel/popup (see the storage listener in
+// buildWindow). One-shot: cleared the first time the listener runs.
+let suppressModeCloseOnce = false;
+// v1.2.0: buildWindow's tab selector, for the show-path (toggleWindow
+// + the one-shot open-tab hint) which lives outside buildWindow.
+let currentSelectFloatTab: ((name: string) => void) | null = null;
+// v1.2.0: the switch menu's document-level closer (registered once).
+let currentSwitchMenu: HTMLElement | null = null;
+let currentSwitchHost: HTMLElement | null = null;
+let switchDocListenerAdded = false;
 
 function runFloatingRefreshers(): void {
   for (const refresh of floatingRefreshers) {
@@ -134,6 +168,12 @@ const CSS = `
 .hgf .mini-cancel { all: unset; cursor: pointer; text-align: center; background: transparent; border: 1px solid #2A3B32; color: #E8FFF3; font-weight: 600; padding: 7px 10px; border-radius: 8px; }
 .hgf .task-mini { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 164px; overflow-y: auto; }
 .hgf .task-mini li { display: flex; align-items: center; gap: 8px; }
+/* v1.2.1: an open task's row gets the emerald border + badge + close. */
+.hgf .task-mini li.open { border: 1px solid #00D084; border-radius: 9px; padding: 2px 4px; }
+.hgf .task-mini button.open-badge { flex: 0 0 auto; display: inline-block; background: #00D084; color: #06281C; font-size: 11px; font-weight: 800; border: none; border-radius: 20px; padding: 3px 8px; white-space: nowrap; }
+.hgf .task-mini button.open-badge:hover { background: #00E08A; }
+.hgf .task-mini button.close-btn { flex: 0 0 auto; display: inline-block; background: transparent; color: #FF7A7A; font-size: 11.5px; font-weight: 700; border: 1px solid #E5484D; border-radius: 8px; padding: 4px 8px; white-space: nowrap; }
+.hgf .task-mini button.close-btn:hover { background: rgba(229, 72, 77, .15); }
 .hgf .task-mini button { all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 4px 6px; border-radius: 7px; }
 .hgf .task-mini button:hover { background: #1A2620; }
 .hgf .task-mini .fav { position: relative; flex-shrink: 0; width: 22px; height: 22px; display: grid; place-items: center; background: #1E2A24; color: #00D084; font-weight: 700; font-size: 12px; border-radius: 6px; overflow: hidden; }
@@ -246,6 +286,45 @@ const CSS = `
 .hgf .note-save:hover { background: #19E292; }
 .hgf .note-cancel { all: unset; cursor: pointer; text-align: center; background: transparent; border: 1px solid #2A3B32; color: #E8FFF3; font-weight: 600; padding: 9px 12px; border-radius: 9px; }
 .hgf .note-local { text-align: center; font-size: 11px; color: #6E8378; margin-top: 10px; }
+
+/* v1.4: Markdown notes, due/link chips, checklist-link editor rows. */
+.hgf .note-body.has-checklist { display: block; -webkit-line-clamp: unset; overflow: visible; }
+.hgf .md-heading { margin: 8px 0 4px; }
+.hgf .md-para { margin: 6px 0; }
+.hgf .md-list { margin: 6px 0; padding-left: 20px; }
+.hgf .md-list li { margin: 2px 0; }
+.hgf .md-check { display: flex; gap: 8px; align-items: flex-start; padding: 5px 0; border-bottom: 1px solid #1B2620; font-size: 12.5px; }
+.hgf .md-check:last-child { border-bottom: none; }
+.hgf .md-check-box { accent-color: #00D084; width: 16px; height: 16px; margin-top: 2px; flex: 0 0 16px; cursor: pointer; }
+.hgf .md-check.done .md-check-label { color: #6E8378; text-decoration: line-through; }
+.hgf .md-check-link { margin-left: auto; font-size: 11px; color: #00D084; white-space: nowrap; }
+.hgf .md-check code, .hgf .md-para code { background: #0A0F0D; border: 1px solid #2A3B32; border-radius: 4px; padding: 0 4px; font-size: 11.5px; }
+.hgf .md-para a, .hgf .md-check-label a { color: #8AB4F8; }
+.hgf .note-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 7px 0 2px; }
+.hgf .note-due-chip { font-size: 11px; font-weight: 800; color: #06281C; background: #FFC24B; border-radius: 20px; padding: 3px 9px; }
+.hgf .note-due-chip.overdue { background: #FF9A8A; }
+.hgf .note-link-chip { font-size: 11px; font-weight: 700; color: #00D084; border: 1px solid #00D084; border-radius: 20px; padding: 3px 9px; }
+.hgf .note-md-hint { font-size: 11px; color: #6E8378; margin: 4px 0 0; line-height: 1.5; }
+.hgf .note-due-in, .hgf .note-task-sel { all: unset; box-sizing: border-box; width: 100%; background: #0A0F0D; border: 1px solid #2A3B32; border-radius: 8px; color: #E8FFF3; padding: 8px 9px; font-size: 13px; }
+.hgf .note-checklist-head { font-size: 12px; color: #9DB8AC; margin: 10px 0 6px; }
+.hgf .note-checklist-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.hgf .note-checklist-label { flex: 1; min-width: 0; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hgf .note-checklist-sel { all: unset; box-sizing: border-box; flex: 0 0 150px; background: #0A0F0D; border: 1px solid #2A3B32; border-radius: 8px; color: #E8FFF3; padding: 6px 8px; font-size: 12px; }
+
+/* v1.2.0: 3-way window-mode switch (⇄ Switch menu in the header). */
+.hgf .switch-wrap { position: relative; margin-left: auto; }
+.hgf .switch-btn { all: unset; cursor: pointer; font-size: 11.5px; font-weight: 700; color: #FFC24B; border: 1px solid #FFC24B; border-radius: 20px; padding: 3px 9px; white-space: nowrap; }
+.hgf .switch-btn:hover { background: #2A1F0A; }
+.hgf .switch-menu { position: absolute; top: calc(100% + 8px); right: 0; width: 190px; z-index: 50; background: #1B2620; border: 1px solid #2A3F33; border-radius: 10px; padding: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.55); }
+.hgf .switch-menu[hidden] { display: none; }
+.hgf .sw-row { all: unset; cursor: pointer; display: block; box-sizing: border-box; width: 100%; padding: 8px 11px; font-size: 12.5px; border-radius: 7px; color: #E8FFF3; text-align: left; }
+.hgf .sw-row:hover { background: #223129; }
+.hgf .sw-row.sel { background: #00D084; color: #06281C; font-weight: 700; }
+.hgf .switch-hint { background: #2A1F0A; border: 1px solid #FFC24B; border-radius: 9px; padding: 8px 10px; font-size: 12px; color: #E8FFF3; margin: 0; }
+.hgf .switch-hint[hidden] { display: none; }
+/* v1.2.0: backup line in the footer (real values only). */
+.hgf .backup-line { font-size: 12px; color: #9DB8AC; margin: 8px 0 0; }
+.hgf .backup-line b { color: #00D084; }
 `; 
 
 function clampPos(pos: Pos): Pos {
@@ -303,6 +382,11 @@ async function initFloatingTasks(win: HTMLElement): Promise<void> {
   const cancelBtn = q<HTMLButtonElement>('[data-act="cancel-task"]');
 
   let tasks: Task[] = [];
+  // v1.2.1: open-tabs map (taskId → tabIds), read from the background
+  // — a content script cannot use chrome.storage.session, so the map
+  // is fetched via MSG_OPEN_TABS_GET and refreshed on
+  // MSG_OPEN_TABS_CHANGED (see main()).
+  let openTabsMap: OpenTabsMap = {};
 
   function showFormError(message: string): void {
     if (!errBox) return;
@@ -364,17 +448,38 @@ async function initFloatingTasks(win: HTMLElement): Promise<void> {
       btn.addEventListener("click", () => {
         void openUrlsViaBackground([task.url]).then(async (result) => {
           showOpenStatus(result.ok ? formatOpenResult(result) : "Could not open the tab — try again.");
-          tasks = await loadTasks();
-          render();
+          // v1.2.1: refresh() re-reads the open-tabs map too, so the
+          // badge appears on this row (the broadcast lands right after).
+          void refresh();
         });
       });
       li.appendChild(btn);
+      // v1.2.1: an open task gets its ● Open badge (focuses the tab)
+      // and ✕ Close (closes exactly those tabs), and the emerald row
+      // border. The background re-broadcasts the map after the action,
+      // so the row refreshes itself; the explicit re-render is the
+      // fast path when the broadcast has not landed yet.
+      const openCount = openTabsCount(openTabsMap, task.id);
+      if (openCount > 0) {
+        li.classList.add("open");
+        li.appendChild(
+          createOpenBadge(openCount, () => {
+            void focusOpenTaskTabs(task.id).then(() => void refresh());
+          }),
+        );
+        li.appendChild(
+          createCloseOpenTabsButton(() => {
+            void closeOpenTaskTabs(task.id).then(() => void refresh());
+          }),
+        );
+      }
       list.appendChild(li);
     }
   }
 
   async function refresh(): Promise<void> {
     tasks = await loadTasks();
+    openTabsMap = await requestOpenTabs();
     render();
   }
 
@@ -424,8 +529,9 @@ async function initFloatingTasks(win: HTMLElement): Promise<void> {
   openAllBtn?.addEventListener("click", () => {
     void openUrlsViaBackground(sortTasks(tasks).map((t) => t.url)).then(async (result) => {
       showOpenStatus(result.ok ? formatOpenResult(result) : "Could not open the tabs — try again.");
-      tasks = await loadTasks();
-      render();
+      // v1.2.1: refresh() re-reads the open-tabs map too, so every
+      // opened task gets its badge (the broadcast lands right after).
+      void refresh();
     });
   });
 
@@ -672,6 +778,143 @@ async function initFloatingUpdate(win: HTMLElement): Promise<void> {
   await refresh();
 }
 
+/**
+ * Window-mode switch menu (v1.2.0) — in-page floating window side.
+ *
+ * The menu lists the three modes with the current one checked. The
+ * honest constraint: choosing Side Panel from HERE cannot open the
+ * panel directly — Chrome needs a user gesture and a page click's
+ * gesture does not survive the message to the background. So the
+ * menu sets the mode, shows the hint ("click the toolbar icon once
+ * to dock"), and keeps this window open. Choosing Popup asks the
+ * background to open the popup window and closes this window.
+ * Choosing Floating (already here) just closes the menu.
+ */
+async function initFloatingSwitch(win: HTMLElement, host: HTMLElement): Promise<void> {
+  const q = <T extends HTMLElement>(sel: string): T | null => win.querySelector(sel) as T | null;
+  const menu = q<HTMLElement>("[data-switch-menu]");
+  const hint = q<HTMLElement>("[data-switch-hint]");
+  const btn = q<HTMLButtonElement>('[data-act="switch"]');
+  if (!menu || !btn) return;
+  const menuEl: HTMLElement = menu;
+  currentSwitchMenu = menuEl;
+  currentSwitchHost = host;
+
+  function hideMenu(): void {
+    menuEl.hidden = true;
+  }
+  function showHint(message: string): void {
+    if (!hint) return;
+    hint.textContent = message;
+    hint.hidden = !message;
+  }
+  async function refreshMenu(): Promise<void> {
+    let current: WindowMode = "floating";
+    try {
+      current = await loadWindowMode();
+    } catch {
+      current = "floating";
+    }
+    menuEl.querySelectorAll<HTMLElement>("[data-mode]").forEach((row) => {
+      const mode = row.dataset.mode as WindowMode;
+      const isCurrent = mode === current;
+      row.classList.toggle("sel", isCurrent);
+      const label = windowModeLabel(mode);
+      row.textContent = isCurrent ? `${label} ✓` : label;
+    });
+  }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menuEl.hidden = !menuEl.hidden;
+    if (!menuEl.hidden) void refreshMenu();
+  });
+  menuEl.querySelectorAll<HTMLElement>("[data-mode]").forEach((row) => {
+    row.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      hideMenu();
+      const target = row.dataset.mode as WindowMode;
+      let current: WindowMode = "floating";
+      try {
+        current = await loadWindowMode();
+      } catch {
+        current = "floating";
+      }
+      if (target === current) return;
+      if (target === "floating") {
+        // This window is already open — switching back just means
+        // the toolbar opens floats again. Save the mode and clear
+        // the hint (deep audit A-19: this row used to do nothing at
+        // all when the mode was sidepanel/popup — a dead menu item).
+        await saveWindowMode("floating");
+        showHint("");
+        return;
+      }
+      if (target === "sidepanel") {
+        // Gesture rule (see the module header): this page click
+        // cannot open the panel — set the mode, keep this window
+        // open, and tell the user the one extra step. The suppress
+        // flag stops this window's own storage listener from
+        // removing it on the mode change.
+        suppressModeCloseOnce = true;
+        await saveWindowMode(target);
+        showHint("Mode set to Side Panel — click the toolbar icon once to dock.");
+        return;
+      }
+      if (target === "popup") {
+        await saveWindowMode(target);
+        try {
+          await chrome.runtime.sendMessage({ type: MSG_OPEN_MODE, mode: target });
+        } catch {
+          // Background unreachable — the mode is saved, so the
+          // toolbar icon opens the popup next time.
+        }
+        host.remove();
+        return;
+      }
+    });
+  });
+  // Clicking anywhere else on the page closes the menu. The shadow
+  // root never sees page clicks, so the page document listens — once
+  // per tab, closing whichever menu is current. A click inside the
+  // shadow tree retargets to the host element, which contains() the
+  // host, so menu clicks never close it from here.
+  if (!switchDocListenerAdded) {
+    switchDocListenerAdded = true;
+    document.addEventListener("pointerdown", (e) => {
+      if (!currentSwitchMenu || currentSwitchMenu.hidden) return;
+      const target = e.target as HTMLElement | null;
+      if (target && currentSwitchHost?.contains(target)) return;
+      currentSwitchMenu.hidden = true;
+    });
+  }
+
+  floatingRefreshers.push(refreshMenu);
+  await refreshMenu();
+}
+
+/**
+ * Backup line in the footer (v1.2.0) — the real last-backup time
+ * from storage, never invented. Re-reads on show / storage change
+ * like the other sections.
+ */
+async function initFloatingBackup(win: HTMLElement): Promise<void> {
+  const q = <T extends HTMLElement>(sel: string): T | null => win.querySelector(sel) as T | null;
+  const line = q<HTMLElement>("[data-backup-line]");
+  if (!line) return;
+  const lineEl: HTMLElement = line;
+  async function refresh(): Promise<void> {
+    try {
+      const state = await loadBackupState();
+      lineEl.textContent = formatBackupChip(state);
+    } catch {
+      lineEl.textContent = "";
+    }
+  }
+  floatingRefreshers.push(refresh);
+  await refresh();
+}
+
 function buildWindow(): HTMLElement {
   // Live-test fix (v1.0.1, bug #4): a fresh window for this tab — drop
   // the previous window's refreshers (they render into a removed DOM
@@ -682,7 +925,21 @@ function buildWindow(): HTMLElement {
     try {
       chrome.storage.onChanged.addListener((changes: Record<string, { newValue?: unknown }>, areaName: string) => {
         if (areaName !== "local") return;
-        if (changes[TASKS_KEY] || changes[SCRIPTS_KEY] || changes[SCRIPT_ERRORS_KEY] || changes[UPDATE_KEY] || changes[NOTES_KEY] || changes[FLOAT_LAYOUT_KEY]) {
+        // v1.2.0: switching the mode away from floating closes open
+        // floats — except the float that set the mode itself (it stays
+        // open with the hint; see initFloatingSwitch).
+        if (changes[WINDOW_MODE_KEY]) {
+          const mode = changes[WINDOW_MODE_KEY].newValue;
+          if (mode === "sidepanel" || mode === "popup") {
+            if (suppressModeCloseOnce) {
+              suppressModeCloseOnce = false;
+            } else {
+              document.getElementById("hiddengem-flow-root")?.remove();
+              return;
+            }
+          }
+        }
+        if (changes[TASKS_KEY] || changes[SCRIPTS_KEY] || changes[SCRIPT_ERRORS_KEY] || changes[UPDATE_KEY] || changes[NOTES_KEY] || changes[FLOAT_LAYOUT_KEY] || changes[BACKUP_KEY] || changes[WINDOW_MODE_KEY]) {
           runFloatingRefreshers();
         }
       });
@@ -705,11 +962,20 @@ function buildWindow(): HTMLElement {
     <header>
       ${GEM_SVG}
       <span class="title">HiddenGem Flow</span>
+      <span class="switch-wrap">
+        <button type="button" class="switch-btn" data-act="switch" title="Switch window mode" aria-label="Switch window mode">⇄ Switch</button>
+        <span class="switch-menu" data-switch-menu hidden>
+          <button type="button" class="sw-row" data-mode="floating">▣ Floating window</button>
+          <button type="button" class="sw-row" data-mode="sidepanel">▤ Side Panel</button>
+          <button type="button" class="sw-row" data-mode="popup">▢ Popup window</button>
+        </span>
+      </span>
       <button type="button" data-act="min" title="Minimize" aria-label="Minimize">–</button>
       <button type="button" data-act="close" title="Close" aria-label="Close">✕</button>
     </header>
     <div class="body">
       <button type="button" class="upd" data-update hidden></button>
+      <p class="switch-hint" data-switch-hint hidden></p>
       <div class="bridge" data-bridge hidden>
         <p>${BRIDGE_MESSAGE}</p>
         <div class="bridge-row">
@@ -768,6 +1034,12 @@ function buildWindow(): HTMLElement {
           <input type="text" class="note-title-in" data-notes-title placeholder="Title" autocomplete="off" maxlength="120" aria-label="Note title" />
           <label>Note</label>
           <textarea class="note-body-in" data-notes-body rows="5" placeholder="Write it down…" aria-label="Note text"></textarea>
+          <p class="note-md-hint">Markdown works here: # heading, **bold**, [text](https://…), - bullet, - [ ] checklist. Ticking a linked checklist item completes its task.</p>
+          <label>Due date (optional — feeds reminders)</label>
+          <input type="datetime-local" class="note-due-in" data-notes-due aria-label="Note due date" />
+          <label>Linked task (optional)</label>
+          <select class="note-task-sel" data-notes-task aria-label="Task this note is attached to"></select>
+          <div class="note-checklist-links" data-notes-checklist-links></div>
           <label>Brand</label>
           <div class="brand-row" data-notes-brand>
             <button type="button" class="brand-pick" data-brand="HiddenGem">◆ HiddenGem</button>
@@ -788,7 +1060,7 @@ function buildWindow(): HTMLElement {
       <div class="layout-panel" data-layout-panel hidden></div>
       <a class="edit-layout" data-act="edit-layout">✎ Edit layout</a>
       <button type="button" class="dash">Open Dashboard</button>
-      <div class="foot">HiddenGem Flow v1.1.0<br><a class="download-btn" href="${RELEASES_PAGE_URL}" target="_blank" rel="noopener noreferrer" title="Download the latest HiddenGem Flow build">${DOWNLOAD_SVG} Download HiddenGem Flow</a></div>
+      <div class="foot">HiddenGem Flow v2.1.1<br><a class="download-btn" href="${RELEASES_PAGE_URL}" target="_blank" rel="noopener noreferrer" title="Download the latest HiddenGem Flow build">${DOWNLOAD_SVG} Download HiddenGem Flow</a><p class="backup-line" data-backup-line></p></div>
     </div>
   `;
   shadow.appendChild(win);
@@ -873,6 +1145,10 @@ function buildWindow(): HTMLElement {
   // --- Extension update line (Unreleased) ---
   void initFloatingUpdate(win);
 
+  // --- Window-mode switch menu + backup line (v1.2.0) ---
+  void initFloatingSwitch(win, host);
+  void initFloatingBackup(win);
+
   // --- Tabs + Notepad (finding A-09) + Edit layout (finding A-10) ---
   // One page at a time; panels are hidden, never removed, so switching
   // tabs preserves each page's state (an open editor, a search query,
@@ -931,7 +1207,17 @@ function buildWindow(): HTMLElement {
     currentLayout = loaded;
     currentFloatTab = effectiveDefaultTab(loaded);
     renderFloatTabs();
+    // v1.2.0: one-shot open-tab hint (quick-note, Alt+Shift+N) — open
+    // the hinted tab once, then clear it so the next open is normal.
+    void readOpenTabHint().then((hint) => {
+      if (!hint) return;
+      void clearOpenTabHint();
+      if (hint === "tasks" || hint === "scripts" || hint === "notes") selectFloatTab(hint);
+    });
   });
+  // v1.2.0: the show-path (toggleWindow / hiddengemflow:show) needs
+  // this window's tab selector after buildWindow returns.
+  currentSelectFloatTab = selectFloatTab;
 
   // Restore saved position, then show.
   void loadPos().then((pos) => {
@@ -952,7 +1238,33 @@ function toggleWindow(): void {
     // granted, task saved) until the page was reloaded.
     const wasHidden = existing.style.display === "none";
     existing.style.display = wasHidden ? "" : "none";
-    if (wasHidden) runFloatingRefreshers();
+    if (wasHidden) {
+      runFloatingRefreshers();
+      applyOpenTabHint();
+    }
+    return;
+  }
+  document.documentElement.appendChild(buildWindow());
+}
+
+/** v1.2.0: read the one-shot open-tab hint (quick-note) and select that tab, then clear it. */
+function applyOpenTabHint(): void {
+  void readOpenTabHint().then((hint) => {
+    if (!hint) return;
+    void clearOpenTabHint();
+    if (hint === "tasks" || hint === "scripts" || hint === "notes") currentSelectFloatTab?.(hint);
+  });
+}
+
+/** v1.2.0: show the window (never hide it) — for commands like quick-note, where toggling it off would be wrong. */
+function showWindow(): void {
+  const existing = document.getElementById("hiddengem-flow-root");
+  if (existing) {
+    if (existing.style.display === "none") {
+      existing.style.display = "";
+      runFloatingRefreshers();
+    }
+    applyOpenTabHint();
     return;
   }
   document.documentElement.appendChild(buildWindow());
@@ -970,8 +1282,34 @@ export default defineContentScript({
     if (w[FLAG]) return;
     w[FLAG] = true;
 
-    chrome.runtime.onMessage.addListener((message: { type?: string }) => {
+    chrome.runtime.onMessage.addListener((message: { type?: string }, _sender: unknown, sendResponse: (r: unknown) => void) => {
       if (message?.type === "hiddengemflow:toggle") toggleWindow();
+      // v1.2.0: "show" never hides — commands (quick-note) open the
+      // window on the hinted tab instead of toggling it off.
+      if (message?.type === "hiddengemflow:show") showWindow();
+      // v1.3 (A-33): ping — the background asks whether the float is
+      // injected in this tab. A live float proves the tab granted
+      // activeTab when it was injected (the float is only ever
+      // injected through an activeTab gesture), which
+      // chrome.permissions.contains() does NOT report — so the ping
+      // is the second half of the host-access check for run-script
+      // and self-test. It answers synchronously; no other tab or
+      // page can fake it (only this tab's injected float listens).
+      if (message?.type === "hiddengemflow:ping") {
+        sendResponse({ ok: true, hasFloat: true });
+        return true;
+      }
+      // v1.2.0 deep audit (A-20): the side panel opening closes open
+      // floats — switching surfaces closes the one being left.
+      if (message?.type === "hiddengemflow:close") {
+        document.getElementById("hiddengem-flow-root")?.remove();
+      }
+      // v1.2.1: the open-tabs map changed (a tab opened, closed or
+      // navigated) — re-read it and re-render the task rows. The
+      // tasks refresher fetches the map from the background.
+      if (message?.type === MSG_OPEN_TABS_CHANGED) {
+        runFloatingRefreshers();
+      }
     });
 
     // First inject opens the window immediately.

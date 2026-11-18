@@ -12,8 +12,9 @@
       <img class="wordmark" src="/logo-v2-wordmark.png" alt="HiddenGem Flow — emerald gem with gold flow" />
       <div class="top-text">
         <h1>HiddenGem Flow</h1>
-        <p>Your daily tasks and scripts, one flow. v1.1.0</p>
+        <p>Your daily tasks and scripts, one flow. v2.1.1</p>
       </div>
+      <span id="backupChip" class="backup-chip" role="status" hidden></span>
       <a class="telegram-btn" href="https://t.me/hiddengemnews" target="_blank" rel="noopener noreferrer" title="Join HiddenGem on Telegram — t.me/hiddengemnews">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
         <span><strong>Join Telegram</strong><small>t.me/hiddengemnews</small></span>
@@ -30,6 +31,11 @@
       <button class="tab" data-tab="scripts" role="tab" aria-selected="false">Scripts</button>
       <button class="tab" data-tab="store" role="tab" aria-selected="false">Script Store</button>
       <button class="tab" data-tab="notes" role="tab" aria-selected="false">Notepad</button>
+      <button class="tab" data-tab="flows" role="tab" aria-selected="false">Flows</button>
+      <button class="tab" data-tab="sessions" role="tab" aria-selected="false">Sessions</button>
+      <button class="tab" data-tab="styles" role="tab" aria-selected="false">Styles</button>
+      <button class="tab" data-tab="dossier" role="tab" aria-selected="false">Dossier</button>
+      <button class="tab" data-tab="later" role="tab" aria-selected="false">Later</button>
       <button class="tab" data-tab="logs" role="tab" aria-selected="false">Logs</button>
       <button class="tab" data-tab="settings" role="tab" aria-selected="false">Settings</button>
     </nav>
@@ -51,19 +57,51 @@
             <dl class="stats">
               <div><dt>Saved task sites</dt><dd id="stat-tasks">0</dd></div>
               <div><dt>Installed scripts</dt><dd id="stat-scripts">0</dd></div>
-              <div><dt>Extension</dt><dd>v1.1.0</dd></div>
-              <div><dt>Platform</dt><dd>Chrome MV3</dd></div>
+              <div><dt>Notes</dt><dd id="stat-notes">0</dd></div>
+              <div><dt>Extension</dt><dd>v2.1.1</dd></div>
             </dl>
             <p class="hint">These are live counts from extension storage — 0 because nothing has been saved yet. Nothing here is demo data.</p>
           </div>
+          <div class="card new">
+            <h2>Backup &amp; Restore <span class="badge">New</span></h2>
+            <label class="toggle-row">
+              <input id="autoBackupToggle" type="checkbox" checked />
+              <span><strong>Auto-backup is ON</strong><small>Snapshots on every change, and before every update.</small></span>
+            </label>
+            <p id="backupLast" class="hint" role="status">No snapshots yet.</p>
+            <ul id="backupSnapshots" class="snapshot-list"></ul>
+            <p id="backupEmpty" class="hint">No snapshots yet — the first one is taken when you change a task, script, note or setting.</p>
+            <div class="row">
+              <button id="backupExport" type="button" class="primary">Export full backup (.json)</button>
+              <button id="backupRestoreFileBtn" type="button" class="secondary">Restore from file…</button>
+              <input id="backupRestoreFile" type="file" accept=".json,application/json" hidden />
+            </div>
+            <p id="backupStatus" class="hint" role="status" hidden></p>
+            <p id="backupError" class="error" role="alert" hidden></p>
+            <p class="hint">Restore never deletes your current data — it is saved as a snapshot first. If an update ever corrupts storage, the last good snapshot is one click away. Restoring replaces your tasks, scripts, notes, layout and window mode with the snapshot's.</p>
+          </div>
+          <div class="card new">
+            <h2>Window mode <span class="badge">New</span></h2>
+            <p>Choose how the Flow opens when you click the toolbar icon — one setting, three modes. Switching closes the current surface.</p>
+            <div class="mode-row" role="radiogroup" aria-label="Window mode">
+              <label class="mode"><input type="radio" name="windowMode" value="floating" checked /> <span><strong>▣ Floating window</strong><small>Draggable, on top of any page.</small></span></label>
+              <label class="mode"><input type="radio" name="windowMode" value="sidepanel" /> <span><strong>▤ Side Panel</strong><small>Docked at the side, stays open across tabs.</small></span></label>
+              <label class="mode"><input type="radio" name="windowMode" value="popup" /> <span><strong>▢ Popup window</strong><small>Separate 360×680 window, works with no site open.</small></span></label>
+            </div>
+            <div class="row">
+              <button id="openModeNow" type="button" class="primary">Open the selected mode now</button>
+            </div>
+            <p id="modeStatus" class="hint" role="status" hidden></p>
+            <p class="hint">Default is Floating window — existing users see no change until they pick another mode. No new permission for any mode. From the floating window, switching to Side Panel sets the mode and asks you to click the toolbar icon once (Chrome needs a real click to open a panel).</p>
+          </div>
           <div class="card">
             <h2>Floating window</h2>
-            <p>Click the <b>HiddenGem Flow</b> toolbar icon on any website to open the draggable floating window. Drag it by its header — its position is remembered.</p>
+            <p>Click the <b>HiddenGem Flow</b> toolbar icon on any website to open the draggable floating window — or dock it as a side panel, or open it as a popup window, from the Window mode card above. Drag it by its header — its position is remembered.</p>
             <p class="hint">The window runs in a Shadow DOM, so the site's own styles cannot break it.</p>
           </div>
           <div class="card">
             <h2>What this extension does</h2>
-            <p><strong>Daily Tasks</strong> — save the sites you open every day and open them all in one click. <strong>Scripts</strong> — a userscript manager: write or import scripts, scan them, and run them on the sites they match. <strong>Script Store</strong> — the Official Store on GitHub: load it, search it, install a script with one confirm. <strong>Notepad</strong> — quick local notes with brand, tags, pin and search — the same notes as the floating window. <strong>Logs</strong> — per-tab status for every tab the extension opens, with Stop All.</p>
+            <p><strong>Daily Tasks</strong> — save the sites you open every day and open them all in one click. <strong>Scripts</strong> — a userscript manager: write or import scripts, scan them, and run them on the sites they match. <strong>Script Store</strong> — the Official Store on GitHub: load it, search it, install a script with one confirm. <strong>Notepad</strong> — quick local notes with brand, tags, pin and search — the same notes as the floating window. <strong>Flows</strong> — one routine = tasks + scripts + note, run with one click or on a schedule. <strong>Logs</strong> — per-tab status for every tab the extension opens, with Stop All.</p>
           </div>
           <div class="card">
             <h2>Official Script Store on GitHub</h2>
@@ -72,6 +110,28 @@
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
               github.com/BidyutRoy2/hiddengem-flow-store</a></p>
             <p class="hint">Nothing installs itself from the store — every script needs your one-click confirm first.</p>
+          </div>
+          <div class="card new">
+            <h2>Right-click menu <span class="badge">New</span></h2>
+            <p>Right-click any page to see this menu — nothing to install, and it can be turned off from Settings.</p>
+            <div class="menu-mock">
+              <div>＋ Save to Daily Tasks</div>
+              <div>✎ Save selection as note</div>
+              <div>▶ Run script on this page <span class="sub">▸</span></div>
+              <div class="sep"></div>
+              <div>💎 HiddenGem Flow <span class="sub">▸</span></div>
+            </div>
+            <p class="hint">“Run script on this page” lists your enabled scripts and runs the one you pick once on that page — then removes the temporary registration. It never installs or enables anything by itself.</p>
+          </div>
+          <div class="card new">
+            <h2>Keyboard shortcuts <span class="badge">New</span></h2>
+            <p>Change them at <code>chrome://extensions/shortcuts</code>.</p>
+            <table class="keys">
+              <tr><td><kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd></td><td>Toggle Flow (opens the current window mode)</td></tr>
+              <tr><td><kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd></td><td>Add current site as a task</td></tr>
+              <tr><td><kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd></td><td>Open Dashboard</td></tr>
+              <tr><td><kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd></td><td>Quick note (opens Notepad)</td></tr>
+            </table>
           </div>
         </div>
       </section>
@@ -91,6 +151,17 @@
                 <input id="taskUrl" type="text" placeholder="e.g. mail.google.com or https://mail.google.com" autocomplete="off" inputmode="url" maxlength="2048" />
               </label>
             </div>
+            <div class="form-row reminder-row">
+              <label>
+                <span>Reminder (optional)</span>
+                <input id="taskReminderTime" type="time" aria-label="Reminder time" />
+              </label>
+              <div class="reminder-days-wrap">
+                <span>Repeat on</span>
+                <div class="reminder-days" id="taskReminderDays"></div>
+              </div>
+            </div>
+            <p class="hint">Reminder: a notification at that time on the checked days (all checked = every day). Clicking it opens the task. A completed task gets no reminder.</p>
             <p id="taskError" class="error" role="alert" hidden></p>
             <div class="row">
               <button id="taskSave" type="submit" class="primary">Save task</button>
@@ -103,6 +174,8 @@
           <div class="tasks-toolbar">
             <input id="taskSearch" type="search" placeholder="Search by name or URL…" aria-label="Search task sites" autocomplete="off" />
             <span id="taskCount" class="hint" role="status"></span>
+            <!-- v1.2.1: live summary of tabs opened from tasks (hidden when none). -->
+            <span id="taskOpenSummary" class="open-summary" role="status" hidden></span>
           </div>
           <div class="row tasks-actions">
             <label class="select-all"><input id="selectAllTasks" type="checkbox" /> Select all</label>
@@ -128,6 +201,7 @@
             <p>This site already has an official script — add it in one click from Script Store.</p>
             <div class="row">
               <button id="scriptBridgeOpen" type="button" class="primary">Open Script Store</button>
+              <button id="scriptBridgeDossier" type="button" class="secondary">View site dossier</button>
               <button id="scriptBridgeDismiss" type="button" class="secondary">Dismiss</button>
             </div>
           </div>
@@ -146,20 +220,38 @@
               <button id="scriptEngineOpenDetails" type="button" class="secondary">Open extension details to enable</button>
             </div>
           </div>
+          <div id="scriptOnboardCard" class="onboard-card" role="status">
+            <strong id="onboardStatus">Checking whether user scripts can run…</strong>
+            <p>Chrome's "Allow User Scripts" toggle is Chrome's own — this extension cannot flip it. Open the extension details, turn the toggle ON, then run the self-test: a tiny script changes the active tab's title, so you can see for yourself that scripts run.</p>
+            <div class="row">
+              <button id="onboardOpenDetails" type="button" class="primary">Open extension details</button>
+              <button id="onboardSelfTest" type="button" class="secondary">Run self-test script</button>
+            </div>
+            <p id="onboardResult" class="hint" role="status" hidden></p>
+          </div>
           <div class="row script-toolbar">
             <button id="scriptNew" type="button" class="primary">＋ Create new script</button>
+            <button id="scriptNewFromPage" type="button" class="secondary">New script from current page</button>
             <button id="scriptImportBtn" type="button" class="secondary">Import…</button>
             <button id="scriptBackup" type="button" class="secondary">Backup (export JSON)</button>
             <button id="scriptRestoreBtn" type="button" class="secondary">Restore backup…</button>
             <input id="scriptImportFile" type="file" hidden />
             <input id="scriptRestoreFile" type="file" accept=".json,application/json" hidden />
           </div>
-          <p class="hint">GM functions that actually work: <code>GM_setValue</code>, <code>GM_getValue</code>, <code>GM_notification</code>, <code>GM_addStyle</code> (and the <code>GM.*</code> object form). <strong>Not supported:</strong> GM_xmlhttpRequest, GM_openInTab, GM_download, GM_setClipboard, unsafeWindow and every other GM_* function — a script that calls one gets a scanner warning at install and a runtime error on the page, never a fake that pretends to work. GM values are stored in the page origin's localStorage, namespaced per script — the page can read them, so never store secrets with GM_*. Only JavaScript userscripts can run in a browser page: a file in another language can be opened here to inspect it, but it cannot run as a script.</p>
+          <p class="hint">GM functions that actually work: <code>GM_setValue</code>, <code>GM_getValue</code>, <code>GM_notification</code>, <code>GM_addStyle</code>, <code>GM_xmlhttpRequest</code> (only with <code>@grant GM_xmlhttpRequest</code> and the host in <code>@connect</code>), <code>GM_setClipboard</code> (and the <code>GM.*</code> object form). <strong>Not supported:</strong> GM_openInTab, GM_download, unsafeWindow and every other GM_* function — a script that calls one gets a scanner warning at install and a runtime error on the page, never a fake that pretends to work. GM values are stored in the page origin's localStorage, namespaced per script — the page can read them, so never store secrets with GM_*. Only JavaScript userscripts can run in a browser page: a file in another language can be opened here to inspect it, but it cannot run as a script.</p>
         </div>
 
         <div class="card" id="scriptEditorCard" hidden>
           <h2 id="scriptEditorTitle">New script</h2>
-          <p class="hint">Write the script — including its <code>// ==UserScript==</code> metadata block — or paste an existing one. Tab inserts spaces instead of moving focus.</p>
+          <p class="hint">Write the script — including its <code>// ==UserScript==</code> metadata block — or paste an existing one. Tab inserts spaces instead of moving focus. The highlight preview below is read-only; you edit in the box above it.</p>
+          <div class="row editor-meta-row">
+            <label>Folder
+              <select id="scriptEditorFolder" aria-label="Folder for this script"></select>
+            </label>
+            <label>Tags (comma-separated, max 10)
+              <input id="scriptEditorTags" type="text" placeholder="trading, helper" autocomplete="off" />
+            </label>
+          </div>
           <textarea id="scriptEditor" spellcheck="false" rows="18" aria-label="Script code">// ==UserScript==
 // @name        My first script
 // @namespace   hiddengem-flow
@@ -175,6 +267,11 @@
 })();
 </textarea>
           <div id="scriptMeta" class="meta-box" aria-live="polite"></div>
+          <div id="scriptLint" class="lint-box" aria-live="polite"></div>
+          <details class="highlight-details">
+            <summary>Highlight preview (read-only — shows the code with syntax colours)</summary>
+            <pre id="scriptHighlight" class="editor-preview" aria-label="Highlighted script preview"></pre>
+          </details>
           <div id="scriptScan" class="scan-box" hidden></div>
           <p id="scriptEditorError" class="error" role="alert" hidden></p>
           <div class="row">
@@ -205,9 +302,25 @@
           <div class="row">
             <button id="scriptUrlImport" type="button" class="secondary">Fetch &amp; import from URL</button>
           </div>
+          <div id="scriptUrlPreview" class="url-preview" hidden>
+            <p><strong id="scriptUrlPreviewName"></strong> <span id="scriptUrlPreviewMeta" class="hint"></span></p>
+            <p id="scriptUrlPreviewScan" class="hint"></p>
+            <div class="row">
+              <button id="scriptUrlConfirm" type="button" class="primary">Confirm Install</button>
+              <button id="scriptUrlDiscard" type="button" class="secondary">Discard</button>
+            </div>
+          </div>
           <p id="scriptImportError" class="error" role="alert" hidden></p>
           <p id="scriptImportNote" class="hint" hidden></p>
-          <p class="hint">Importing loads the code into the editor above for a scan + confirm — nothing is installed straight from a file, paste or URL.</p>
+          <p class="hint">Importing loads the code into the editor above for a scan + confirm — nothing is installed straight from a file, paste or URL. The URL preview above shows the name, version, @match lines, size and scan score first; only Confirm Install installs it.</p>
+        </div>
+
+        <div class="card" id="siteScriptsCard">
+          <h2>Find scripts for this site</h2>
+          <p class="hint" id="siteScriptsFor">The currently open site, and the scripts that match it.</p>
+          <ul id="siteScriptsList" class="site-scripts-list"></ul>
+          <p id="siteScriptsEmpty" class="hint">No script matches the currently open site yet.</p>
+          <p class="hint" id="siteScriptsNote"></p>
         </div>
 
         <div class="card">
@@ -215,8 +328,35 @@
             <h2>Installed scripts</h2>
             <span id="scriptCount" class="hint" role="status"></span>
           </div>
-          <ul id="scriptList" class="script-list"></ul>
-          <p id="scriptEmpty" class="hint">No scripts installed yet — create one above, or import a <code>.js</code>, <code>.user.js</code> or <code>.txt</code> file.</p>
+          <div class="scripts-layout">
+            <aside class="folders-panel" aria-label="Script folders">
+              <h3>Folders</h3>
+              <ul id="folderList" class="folder-list"></ul>
+              <div class="row folder-new-row">
+                <input id="folderNewName" type="text" placeholder="New folder name" aria-label="New folder name" />
+                <button id="folderNewBtn" type="button" class="secondary">＋ Folder</button>
+              </div>
+              <p id="folderError" class="error" role="alert" hidden></p>
+            </aside>
+            <div class="scripts-main">
+              <div id="bulkBar" class="bulk-bar" hidden>
+                <span id="bulkCount"></span>
+                <button id="bulkEnable" type="button" class="secondary">Enable</button>
+                <button id="bulkDisable" type="button" class="secondary">Disable</button>
+                <button id="bulkExport" type="button" class="secondary">Export</button>
+                <button id="bulkArchive" type="button" class="secondary">Archive</button>
+                <button id="bulkDelete" type="button" class="secondary danger-btn">Delete</button>
+                <button id="bulkClear" type="button" class="secondary">Clear</button>
+              </div>
+              <ul id="scriptList" class="script-list"></ul>
+              <p id="scriptEmpty" class="hint">No scripts installed yet — create one above, or import a <code>.js</code>, <code>.user.js</code> or <code>.txt</code> file.</p>
+              <div id="archivedSection" hidden>
+                <h3>🗄 Archived <span id="archivedCount" class="hint"></span></h3>
+                <p class="hint">Archived scripts do not run. Restoring one brings it back with its folder, tags and enabled flag.</p>
+                <ul id="archivedList" class="script-list"></ul>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -290,6 +430,12 @@
             <input type="text" class="note-title-in" data-notes-title placeholder="Title" autocomplete="off" maxlength="120" aria-label="Note title" />
             <label>Note</label>
             <textarea class="note-body-in" data-notes-body rows="5" placeholder="Write it down…" aria-label="Note text"></textarea>
+            <p class="note-md-hint">Markdown works here: # heading, **bold**, [text](https://…), - bullet, - [ ] checklist. Ticking a linked checklist item completes its task.</p>
+            <label>Due date (optional — feeds reminders)</label>
+            <input type="datetime-local" class="note-due-in" data-notes-due aria-label="Note due date" />
+            <label>Linked task (optional)</label>
+            <select class="note-task-sel" data-notes-task aria-label="Task this note is attached to"></select>
+            <div class="note-checklist-links" data-notes-checklist-links></div>
             <label>Brand</label>
             <div class="brand-row" data-notes-brand>
               <button type="button" class="brand-pick" data-brand="HiddenGem">◆ HiddenGem</button>
@@ -307,6 +453,403 @@
             <p class="note-local">Saved on this browser only — notes never leave your computer.</p>
           </div>
         </div>
+      </section>
+
+      <section id="panel-flows" class="panel">
+        <div class="card">
+          <h2>Flows</h2>
+          <p>One routine = tasks + scripts + note. <b>Run</b> opens the flow's tasks, runs the scripts that match the opened pages — only scripts already installed, a Flow never installs anything — and shows the note.</p>
+          <p id="reminderStatus" class="hint" role="status">Checking reminders…</p>
+        </div>
+
+        <div class="card">
+          <h2>Reminders &amp; scheduled Open All</h2>
+          <label class="toggle-row">
+            <input id="nudgeToggle" type="checkbox" checked />
+            <span><strong>Daily nudge for unopened pinned tasks</strong><small>One notification a day when a pinned task is still unopened.</small></span>
+          </label>
+          <div class="form-row">
+            <label>
+              <span>Nudge time</span>
+              <select id="nudgeHour" aria-label="Nudge hour"></select>
+            </label>
+            <label>
+              <span>Scheduled Open All (optional)</span>
+              <input id="openAllTime" type="time" aria-label="Scheduled Open All time" />
+            </label>
+            <label>
+              <span>Open</span>
+              <select id="openAllScope" aria-label="Scheduled Open All scope">
+                <option value="pinned" selected>Pinned tasks</option>
+                <option value="all">All tasks</option>
+              </select>
+            </label>
+          </div>
+          <div class="reminder-days-wrap">
+            <span>Repeat on</span>
+            <div class="reminder-days" id="openAllDays"></div>
+          </div>
+          <div class="row">
+            <button id="remindersSave" type="button" class="primary">Save reminders</button>
+            <button id="nudgeTest" type="button" class="secondary">Test nudge now</button>
+          </div>
+          <p id="remindersSaveStatus" class="hint" role="status" hidden></p>
+          <p class="hint">Scheduled Open All opens through the same funnel as a manual Open All — 50 tabs at a time, and the open-tabs badges still work. Reminders need notifications on: if Chrome blocks them, the dashboard says so above instead of failing silently. Address-bar search: type <code>flow</code>, press Tab, and search your tasks, scripts and notes.</p>
+        </div>
+
+        <div class="card" id="flowFormCard">
+          <h2 id="flowFormTitle">New flow</h2>
+          <div class="form-row">
+            <label>
+              <span>Name</span>
+              <input id="flowName" type="text" placeholder="e.g. Morning" autocomplete="off" maxlength="60" />
+            </label>
+            <label class="grow">
+              <span>Description (optional)</span>
+              <input id="flowDesc" type="text" placeholder="What this routine does" autocomplete="off" maxlength="200" />
+            </label>
+          </div>
+          <div class="flow-pick">
+            <div>
+              <h3>Tasks — the sites it opens</h3>
+              <div id="flowTaskPick" class="flow-pick-list"></div>
+            </div>
+            <div>
+              <h3>Scripts — run on the opened pages (already installed only)</h3>
+              <div id="flowScriptPick" class="flow-pick-list"></div>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>
+              <span>Note to show</span>
+              <select id="flowNote" aria-label="Note to show with this flow"></select>
+            </label>
+            <label>
+              <span>Schedule (optional)</span>
+              <input id="flowTime" type="time" aria-label="Flow schedule time" />
+            </label>
+          </div>
+          <div class="reminder-days-wrap">
+            <span>Repeat on</span>
+            <div class="reminder-days" id="flowDays"></div>
+          </div>
+          <p id="flowError" class="error" role="alert" hidden></p>
+          <div class="row">
+            <button id="flowSave" type="button" class="primary">Save flow</button>
+            <button id="flowCancelEdit" type="button" class="secondary" hidden>Cancel edit</button>
+          </div>
+          <p class="hint">Scheduling uses the same alarms as reminders — a scheduled Flow never installs anything, and its scripts only run on the pages the Flow opens.</p>
+        </div>
+
+        <div class="card">
+          <ul id="flowList" class="flow-list"></ul>
+          <p id="flowEmpty" class="hint">No flows yet — build your first routine above.</p>
+          <p id="flowRunStatus" class="hint" role="status" hidden></p>
+          <div id="flowNotePreview" class="flow-note-preview" hidden></div>
+        </div>
+      </section>
+
+
+      <section id="panel-sessions" class="panel">
+        <div class="card">
+          <h2>Sessions</h2>
+          <p>Save the tabs open right now as a named session, and restore it later into a <b>new window</b> — restoring never closes your existing tabs. Closing a window auto-saves it as “Last session”, so nothing is lost when a window closes by accident.</p>
+          <div class="form-row">
+            <label class="grow">
+              <span>Session name</span>
+              <input id="sessionName" type="text" placeholder="e.g. Morning tabs" autocomplete="off" maxlength="80" />
+            </label>
+          </div>
+          <div class="row">
+            <button id="sessionSave" type="button" class="primary">Save current window as session</button>
+          </div>
+          <p id="sessionStatus" class="hint" role="status" hidden></p>
+          <ul id="sessionList" class="flow-list"></ul>
+          <p id="sessionEmpty" class="hint">No sessions saved yet — save the current window above, or close a window and “Last session” appears here.</p>
+        </div>
+
+        <div class="card">
+          <h2>Smart Open All</h2>
+          <p>Open All, but smart: tabs that are already open are skipped (no duplicates), the new ones open into a named tab group, and unviewed tabs suspend after N minutes — they stay in the tab strip, they are never closed.</p>
+          <div class="row">
+            <button id="smartOpenAll" type="button" class="primary">Smart Open All</button>
+            <button id="smartOpenMissed" type="button" class="secondary">Only the ones you missed</button>
+          </div>
+          <p id="smartOpenStatus" class="hint" role="status" hidden></p>
+          <div class="form-row">
+            <label>
+              <span>Tab group name</span>
+              <input id="smartGroupName" type="text" autocomplete="off" maxlength="60" />
+            </label>
+            <label>
+              <span>Suspend unviewed tabs after (minutes, 0 = never)</span>
+              <input id="smartSuspendMinutes" type="number" min="0" max="240" step="1" />
+            </label>
+          </div>
+          <label class="toggle-row">
+            <input id="smartGroupToggle" type="checkbox" checked />
+            <span><strong>Group the new tabs</strong><small>Needs the optional “View and manage your tab groups” permission, asked once when you open. If you decline, the tabs just open ungrouped.</small></span>
+          </label>
+          <div class="row">
+            <button id="smartSave" type="button" class="secondary">Save Smart Open All settings</button>
+          </div>
+          <p id="smartSaveStatus" class="hint" role="status" hidden></p>
+        </div>
+
+        <div class="card">
+          <h2>Snooze queue</h2>
+          <p>Snoozed tasks leave the Daily Tasks list and come back at their time. This is a local list only — Chrome's Reading List is never used.</p>
+          <ul id="snoozeList" class="flow-list"></ul>
+          <p id="snoozeEmpty" class="hint">Nothing snoozed — snooze a task from its row in Daily Tasks (⏰, to tomorrow 09:00) or from here.</p>
+          <div class="form-row">
+            <label class="grow">
+              <span>Snooze a task</span>
+              <select id="snoozeTaskSel" aria-label="Task to snooze"></select>
+            </label>
+            <label>
+              <span>Until</span>
+              <select id="snoozeTarget" aria-label="Snooze until">
+                <option value="tomorrow-0900" selected>Tomorrow 09:00</option>
+                <option value="this-evening">This evening (18:00)</option>
+                <option value="in-1-minute">In 1 minute</option>
+              </select>
+            </label>
+          </div>
+          <div class="row">
+            <button id="snoozeAdd" type="button" class="secondary">Snooze task</button>
+          </div>
+          <p id="snoozeStatus" class="hint" role="status" hidden></p>
+        </div>
+      </section>
+
+      <section id="panel-styles" class="panel">
+        <div class="card">
+          <h2>Userstyles — per-site CSS</h2>
+          <p>CSS that runs only on one site. Save it, and it applies whenever you visit that site (live preview registers it at once). “Dark hours only” runs it only between the hours you set. A style can never fetch from the web: <code>@import</code> and remote <code>url()</code> are refused. Like userscripts, a style only RUNS on a host you granted site access for — if a style says “needs site access”, click <strong>Grant site access</strong> next to it.</p>
+          <div class="form-row">
+            <label>
+              <span>Name</span>
+              <input id="styleName" type="text" placeholder="e.g. Dark header for Titan" autocomplete="off" maxlength="80" />
+            </label>
+            <label class="grow">
+              <span>Site host</span>
+              <input id="styleHost" type="text" placeholder="e.g. testnet.titanx.cc" autocomplete="off" maxlength="120" />
+            </label>
+          </div>
+          <label class="import-label">
+            <span>CSS</span>
+            <textarea id="styleCss" spellcheck="false" rows="8" placeholder=".trade-header { background: #0A0F0D !important; }"></textarea>
+          </label>
+          <div class="form-row">
+            <label>
+              <span>Schedule</span>
+              <select id="styleSchedule" aria-label="Style schedule">
+                <option value="always" selected>Always (when enabled)</option>
+                <option value="dark-hours">Dark hours only</option>
+              </select>
+            </label>
+            <label>
+              <span>From (hour)</span>
+              <input id="styleStartHour" type="number" min="0" max="23" value="19" />
+            </label>
+            <label>
+              <span>To (hour)</span>
+              <input id="styleEndHour" type="number" min="0" max="23" value="7" />
+            </label>
+          </div>
+          <label class="toggle-row">
+            <input id="stylePreview" type="checkbox" />
+            <span><strong>Live preview</strong><small>Apply this style on its site right now, while you edit.</small></span>
+          </label>
+          <p id="styleError" class="error" role="alert" hidden></p>
+          <div class="row">
+            <button id="styleSave" type="button" class="primary">Save style</button>
+            <button id="styleCancelEdit" type="button" class="secondary" hidden>Cancel edit</button>
+          </div>
+          <p id="styleStatus" class="hint" role="status" hidden></p>
+          <ul id="styleList" class="flow-list"></ul>
+          <p id="styleEmpty" class="hint">No userstyles yet — write one above.</p>
+        </div>
+
+        <div class="card">
+          <h2>Scratchpad</h2>
+          <p>Run unsaved JavaScript or CSS <b>once</b> on the current tab. Nothing is saved unless you press <b>Save as script</b> or <b>Save as style</b> — the scratchpad itself writes nothing anywhere. JavaScript needs Chrome's “Allow User Scripts” toggle ON (same as any script); CSS runs on the current tab directly.</p>
+          <div class="form-row">
+            <label>
+              <span>Run as</span>
+              <select id="scratchKind" aria-label="Scratchpad kind">
+                <option value="js" selected>JavaScript</option>
+                <option value="css">CSS</option>
+              </select>
+            </label>
+          </div>
+          <label class="import-label">
+            <span>Code (runs once, not saved)</span>
+            <textarea id="scratchCode" spellcheck="false" rows="8" placeholder="document.querySelectorAll('.sidebar-ad').forEach(el => el.remove());"></textarea>
+          </label>
+          <div class="row">
+            <button id="scratchRun" type="button" class="primary">▶ Run once</button>
+            <button id="scratchSaveScript" type="button" class="secondary">Save as script</button>
+            <button id="scratchSaveStyle" type="button" class="secondary">Save as style</button>
+            <button id="scratchClear" type="button" class="secondary">Clear</button>
+          </div>
+          <p id="scratchStatus" class="hint" role="status" hidden></p>
+        </div>
+      </section>
+
+      <section id="panel-dossier" class="panel">
+        <div class="card">
+          <h2>Site dossier</h2>
+          <p>Everything about one site in one place: its task, the scripts that match it, notes tagged for it, its run history, and store scripts for it that you have not installed yet. All of it comes from your real saved data — nothing here is invented.</p>
+          <div class="form-row">
+            <label class="grow">
+              <span>Site</span>
+              <select id="dossierSite" aria-label="Site for the dossier"></select>
+            </label>
+          </div>
+          <div id="dossierContent"></div>
+          <p id="dossierEmpty" class="hint">No task sites saved yet — save one in Daily Tasks and its dossier appears here.</p>
+        </div>
+
+        <div class="card">
+          <h2>Store collections</h2>
+          <p>Follow a collection to keep its scripts in sight. Following never installs anything — each script is still installed one-by-one from the Script Store tab, with a preview and a confirm.</p>
+          <ul id="collectionList" class="flow-list"></ul>
+          <p id="collectionEmpty" class="hint">Load the store first (Script Store tab → Load store) to see which collection scripts are actually in the store.</p>
+          <div class="tasks-toolbar">
+            <input id="collectionSearch" type="search" placeholder="Search the store…" aria-label="Search the store" autocomplete="off" />
+          </div>
+          <ul id="collectionSearchResults" class="store-list"></ul>
+          <p id="collectionSearchEmpty" class="hint" hidden>No store scripts match that search.</p>
+        </div>
+
+        <div class="card">
+          <h2>Storage viewer — per script</h2>
+          <p>See what data a script saved with <code>GM_setValue</code> on its site, its registration errors, and its run history. <b>Read-only</b> — the viewer never edits a script's data. Values live in the page, so open the site tab first, then inspect.</p>
+          <div class="form-row">
+            <label class="grow">
+              <span>Script</span>
+              <select id="viewerScript" aria-label="Script to inspect"></select>
+            </label>
+          </div>
+          <div class="row">
+            <button id="viewerInspect" type="button" class="primary">Inspect saved data</button>
+            <button id="viewerExportRuns" type="button" class="secondary">Export run history (.json)</button>
+          </div>
+          <p id="viewerStatus" class="hint" role="status" hidden></p>
+          <div id="viewerResults"></div>
+        </div>
+
+        <div class="card">
+          <h2>Local-file workflow</h2>
+          <p>Export a script as a <code>.user.js</code> file, edit it in your own editor, then pick the file again to update the installed script (you see the change and confirm it — nothing updates silently).</p>
+          <p class="hint">File-watching is not possible in MV3: a service worker cannot re-read a local file without a user gesture, and Chrome has no file-watching API for extensions. This build exports and re-imports on your click — it never pretends to watch the file in the background. “Check file for changes” re-reads a file you picked earlier, on this click only.</p>
+          <div class="form-row">
+            <label class="grow">
+              <span>Script</span>
+              <select id="localFileScript" aria-label="Script for the local-file workflow"></select>
+            </label>
+          </div>
+          <div class="row">
+            <button id="localFileExport" type="button" class="primary">Export as .user.js</button>
+            <button id="localFileImportBtn" type="button" class="secondary">Re-import a file…</button>
+            <input id="localFileImport" type="file" accept=".js,.user.js,text/plain" hidden />
+            <button id="localFileCheck" type="button" class="secondary">Check file for changes</button>
+          </div>
+          <p id="localFileStatus" class="hint" role="status" hidden></p>
+          <p id="localFileError" class="error" role="alert" hidden></p>
+        </div>
+      </section>
+
+      <section id="panel-later" class="panel">
+        <div class="card">
+          <h2>Scheduled scripts <span class="badge">New</span></h2>
+          <p>Scripts run on a timer — with no page open. Each script needs its own opt-in (turning one on asks you to confirm first), and every run is logged below. A scheduled run opens the script's site in a background tab, lets the script run on load, then closes the tab — it never installs anything, and a script without site access logs an honest failure instead of running.</p>
+          <ul id="schedList" class="sched-list"></ul>
+          <p id="schedEmpty" class="hint">No scripts installed yet — create or import one in the Scripts tab, then schedule it here.</p>
+          <p id="schedStatus" class="hint" role="status" hidden></p>
+          <h3>Run log</h3>
+          <div id="schedRunLog" class="runlog" role="log" aria-label="Scheduled script run log">No scheduled runs yet.</div>
+          <p class="hint">Trust gate: a scheduled script never installs itself. You turn each one on yourself, and the log above shows every run — what ran, when, and what failed.</p>
+        </div>
+
+        <div class="card">
+          <h2>Sync — OFF by default <span class="badge">New</span></h2>
+          <p>Tasks, scripts, and notes — to <b>your own</b> storage, if you want. No HiddenGem server, no account, no signup.</p>
+          <label class="toggle-row">
+            <input id="syncToggle" type="checkbox" />
+            <span><strong>Sync my data</strong><small>Default OFF — nothing syncs until you turn this on.</small></span>
+          </label>
+          <div class="prov" role="group" aria-label="Sync provider">
+            <button type="button" class="prov-chip" data-sync-provider="webdav">WebDAV</button>
+            <button type="button" class="prov-chip" data-sync-provider="gist">GitHub Gist</button>
+            <button type="button" class="prov-chip" data-sync-provider="drive">Google Drive</button>
+          </div>
+          <div id="syncFieldsWebdav" class="sync-fields">
+            <div class="form-row">
+              <label class="grow">
+                <span>WebDAV URL (the file to sync to)</span>
+                <input id="syncWebdavUrl" type="text" placeholder="https://my-server.example.com/hiddengem-flow-backup.json" autocomplete="off" inputmode="url" maxlength="2048" />
+              </label>
+            </div>
+            <div class="form-row">
+              <label>
+                <span>Username</span>
+                <input id="syncWebdavUser" type="text" placeholder="(optional)" autocomplete="off" maxlength="256" />
+              </label>
+              <label>
+                <span>Password</span>
+                <input id="syncWebdavPassword" type="password" placeholder="Saved — leave blank to keep it" autocomplete="off" maxlength="4096" />
+              </label>
+            </div>
+            <p class="hint">Plain http:// is only allowed for a server on this computer (localhost) — a remote WebDAV URL must be https://, or your password would travel in the clear.</p>
+          </div>
+          <div id="syncFieldsGist" class="sync-fields" hidden>
+            <div class="form-row">
+              <label class="grow">
+                <span>Gist id</span>
+                <input id="syncGistId" type="text" placeholder="e.g. a1b2c3d4e5f6…" autocomplete="off" maxlength="128" />
+              </label>
+              <label class="grow">
+                <span>Personal access token (needs the gist scope)</span>
+                <input id="syncGistToken" type="password" placeholder="Saved — leave blank to keep it" autocomplete="off" maxlength="4096" />
+              </label>
+            </div>
+            <p class="hint">Create the Gist yourself on GitHub first (private is fine), then paste its id and a token with the <code>gist</code> scope. The token is sent only to api.github.com.</p>
+          </div>
+          <div id="syncFieldsDrive" class="sync-fields" hidden>
+            <div class="form-row">
+              <label class="grow">
+                <span>Drive file id</span>
+                <input id="syncDriveFileId" type="text" placeholder="From the file's Drive URL" autocomplete="off" maxlength="256" />
+              </label>
+              <label class="grow">
+                <span>Access token</span>
+                <input id="syncDriveToken" type="password" placeholder="Saved — leave blank to keep it" autocomplete="off" maxlength="4096" />
+              </label>
+            </div>
+            <p class="hint">Create the file yourself in Google Drive first, then paste its id and an access token. There is no sign-in flow in this extension — you paste a token you created. The token is sent only to googleapis.com.</p>
+          </div>
+          <div class="form-row">
+            <label>
+              <span>Sync automatically</span>
+              <select id="syncAuto" aria-label="Automatic sync interval">
+                <option value="0" selected>Manual only</option>
+                <option value="60">Every hour</option>
+                <option value="360">Every 6 hours</option>
+                <option value="1440">Every day</option>
+              </select>
+            </label>
+          </div>
+          <div class="row">
+            <button id="syncSave" type="button" class="secondary">Save sync settings</button>
+            <button id="syncNow" type="button" class="primary">Sync now (upload)</button>
+            <button id="syncPull" type="button" class="secondary">Download from provider</button>
+          </div>
+          <p id="syncStatus" class="hint" role="status" hidden></p>
+          <p class="hint">Your data goes to YOUR WebDAV / Gist / Drive. <b>No HiddenGem server.</b> Tokens stay in this browser only — they are never in backups, never in logs, and never sent anywhere except the provider you picked. Turning sync on asks Chrome once for access to that provider's address only (the same per-site grant scripts use) — without it the extension cannot reach the provider at all. Last write wins: uploading replaces the provider copy, downloading replaces this browser's copy — and either way your current state is saved as a backup snapshot first, so nothing is ever lost silently. Downloading replaces your tasks, scripts and notes here — it asks you to confirm first.</p>
+        </div>
+
       </section>
 
       <section id="panel-logs" class="panel">
@@ -330,6 +873,7 @@
             <li><code>hiddengemflow.floating.pos</code> — floating window position</li>
             <li><code>hiddengemflow.tasks.v1</code> — saved task sites (Phase 2)</li>
             <li><code>hiddengemflow.scripts.v1</code> — installed scripts (Phase 3)</li>
+            <li><code>hiddengemflow.folders.v1</code> — script folders, incl. archived state on the scripts themselves (v1.3)</li>
             <li><code>hiddengemflow.scripts.errors.v1</code> — per-script registration errors (Phase 3)</li>
             <li><code>hiddengemflow.store.cache.v1</code> — last good Official Store index + when it was fetched (Phase 4)</li>
             <li><code>hiddengemflow.bridge.dismissed.v1</code> — hostnames where the store bridge banner was dismissed (Phase 4)</li>
@@ -337,17 +881,58 @@
             <li><code>hiddengemflow.update.v1</code> — latest release check result + when it was checked (update checker)</li>
             <li><code>hiddengemflow.notes.v1</code> — saved notes (Notepad)</li>
             <li><code>hiddengemflow.float.layout.v1</code> — floating window tab order, hidden tabs and default tab (Edit layout)</li>
+            <li><code>hiddengemflow.backup.v1</code> — automatic versioned backup: auto on/off + the last 3 snapshots (v1.2.0)</li>
+            <li><code>hiddengemflow.window.mode.v1</code> — window mode: floating, sidepanel or popup (v1.2.0)</li>
+            <li><code>hiddengemflow.float.openTab.v1</code> — one-shot hint for which float tab to open next (quick-note, v1.2.0)</li>
+            <li><code>hiddengemflow.contextMenu.v1</code> — right-click menu on/off (v1.2.0)</li>
+            <li><code>hiddengemflow.tasks.open.v1</code> — open tabs per task, this browser session only (not backed up, resets on restart) (v1.2.1)</li>
+            <li><code>hiddengemflow.flows.v1</code> — saved Flows: tasks + scripts + note + schedule (v1.4)</li>
+            <li><code>hiddengemflow.reminders.v1</code> — daily nudge on/off + hour, scheduled Open All time/days/scope (v1.4)</li>
+            <li><code>hiddengemflow.sessions.v1</code> — saved sessions, incl. the auto-saved “Last session” (v1.5+)</li>
+            <li><code>hiddengemflow.userstyles.v1</code> — per-site userstyles (v1.5+)</li>
+            <li><code>hiddengemflow.snoozes.v1</code> — snoozed tasks + their return times (v1.5+)</li>
+            <li><code>hiddengemflow.collections.followed.v1</code> — followed store collections, ids only (v1.5+)</li>
+            <li><code>hiddengemflow.smartopen.v1</code> — Smart Open All settings: group name, suspend minutes (v1.5+)</li>
+            <li><code>hiddengemflow.smartopen.pending.v1</code> — tabs waiting to be suspended, this browser session only (not backed up, resets on restart) (v1.5+)</li>
+            <li><code>hiddengemflow.schedules.v1</code> — per-script schedules: opt-in + interval per script (Later)</li>
+            <li><code>hiddengemflow.schedules.runs.v1</code> — scheduled-run log, last 50 runs — live run state, NOT backed up (Later)</li>
+            <li><code>hiddengemflow.sync.v1</code> — sync settings WITHOUT tokens: on/off, provider, WebDAV URL / Gist id / Drive file id, auto-sync interval, last sync (Later)</li>
+            <li><code>hiddengemflow.sync.tokens.v1</code> — provider tokens — NEVER in backups, NEVER in logs, sent only to the provider you picked (Later)</li>
+            <li id="keyAi"><code>hiddengemflow.ai.v1</code> — AI authoring settings WITHOUT the API key: cloud opt-in, provider, model (AI authoring)</li>
+            <li id="keyAiTokens"><code>hiddengemflow.ai.tokens.v1</code> — cloud LLM API keys, one per provider — NEVER in backups, NEVER in logs, each sent only to its own provider (AI authoring)</li>
+            <li>Site dossier: derived from the keys above — no storage key of its own. Scratchpad: no storage at all (runs once, never saved). Local-file handles: kept in the dashboard page's IndexedDB only, never in storage and never in backups.</li>
           </ul>
           <div class="row">
             <button id="resetPos" class="secondary">Reset floating window position</button>
             <span id="resetResult" class="hint" role="status"></span>
           </div>
-          <p><strong>Permissions in use:</strong> storage, tabs, scripting, activeTab, userScripts, notifications. No required host permissions — the floating window is injected only when you click the toolbar icon.</p>
+          <p><strong>Permissions in use:</strong> storage, tabs, scripting, activeTab, userScripts, notifications, sidePanel, contextMenus, alarms. Optional only: <code>tabGroups</code> (“View and manage your tab groups”, asked once when grouping is used) and site access (<code>*://*/*</code>). No required host permissions — the floating window is injected only when you click the toolbar icon. Keyboard shortcuts need no permission (manifest <code>commands</code>). The omnibox keyword <code>flow</code> needs no permission either (manifest key only).</p>
           <ul>
             <li><strong>Scripts need two more grants, both yours to give.</strong> First, Chrome's per-extension <strong>Allow User Scripts</strong> toggle (chrome://extensions → HiddenGem Flow → Details) — no extension can flip it for you; the floating window has a button that opens that page directly. Second, <strong>site access</strong> for the sites a script runs on — an <em>optional</em> permission (<code>*://*/*</code>) granted per site (Scripts tab → Grant site access, or Site access → On all sites in the extension details). Until both are on, scripts are saved but never run.</li>
-            <li><strong>Notifications</strong> are used only by <code>GM_notification</code> from a running script. <strong>Alarms</strong> was removed in v1.0.0 — it was requested but never used.</li>
+            <li><strong>Notifications</strong> are used by <code>GM_notification</code> from a running script, by the right-click menu and keyboard shortcuts (which confirm what they saved or ran), and by <strong>reminders</strong> — task reminders, the daily pinned-task nudge, scheduled Open All and note due dates. If notifications are blocked in Chrome, reminders are scheduled but cannot alert you, and the Flows tab says so instead of failing silently.</li>
+            <li><strong>Alarms</strong> (<code>alarms</code> permission, no warning) drive the reminders: one alarm per task reminder, one for the daily nudge, one for scheduled Open All, one per scheduled Flow, one per note due date. Alarms wake the service worker only to fire — nothing runs in the background between alarms. <strong>Later:</strong> one alarm per enabled scheduled script (<code>hgf-sched-…</code>) and one for periodic sync (<code>hgf-sync</code>, only while sync is on with an interval).</li>
+            <li><strong>Side Panel</strong> (<code>sidePanel</code> permission, no warning) docks the same floating UI at the side of the browser. <strong>Context menus</strong> (<code>contextMenus</code> permission, no warning) add the right-click menu. Neither permission shows a warning at install.</li>
           </ul>
-          <p><strong>Network:</strong> almost everything is user-triggered — nothing is sent to any server except (1) the best-effort favicon image (Google s2) shown next to each task site — a letter tile shows instead if it fails; (2) a script import from a URL, fetched once when you click Fetch, and the page you fetch can see the request; (3) <strong>Load store</strong>, which fetches the Official Store index (raw.githubusercontent, then jsDelivr), and opening a store script's detail view, which fetches its code once. The Smart Notification Bridge never fetches on its own — it reads the cached store copy. No analytics, no telemetry. The run log only records tabs this extension opened. The one exception is the <strong>update checker</strong>: it asks api.github.com for the latest release at most once every 6 hours (on startup/install and when this dashboard opens), plus whenever you click <strong>Check for updates</strong> below. It sends no data about you — the request is a plain public release listing.</p>
+          <p><strong>Network:</strong> almost everything is user-triggered — nothing is sent to any server except (1) the best-effort favicon image (Google s2) shown next to each task site — a letter tile shows instead if it fails; (2) a script import from a URL, fetched once when you click Fetch, and the page you fetch can see the request; (3) <strong>Load store</strong>, which fetches the Official Store index (raw.githubusercontent, then jsDelivr), and opening a store script's detail view, which fetches its code once. The Smart Notification Bridge never fetches on its own — it reads the cached store copy. No analytics, no telemetry. The run log only records tabs this extension opened. The one exception is the <strong>update checker</strong>: it asks api.github.com for the latest release at most once every 6 hours (on startup/install and when this dashboard opens), plus whenever you click <strong>Check for updates</strong> below. It sends no data about you — the request is a plain public release listing. <strong>Later:</strong> (4) <strong>Sync</strong> — only when you turn it on and press Sync now (or set an interval): the backup payload goes to the provider you picked (your WebDAV server, api.github.com for Gist, googleapis.com for Drive), with the token you pasted; (5) <strong>Cloud LLM</strong> (AI authoring) — only when you opt in with a provider + your own key: your prompt goes to the provider you picked (Groq, Google, NVIDIA, OpenRouter, Together, Hugging Face, Cerebras, Mistral, or your own custom endpoint), and the reply is shown as a draft, never installed without your confirm.</p>
+        </div>
+        <div class="card">
+          <h2>Right-click menu</h2>
+          <label class="toggle-row">
+            <input id="contextMenuToggle" type="checkbox" checked />
+            <span><strong>Show the right-click menu</strong><small>“HiddenGem Flow” on any page: Save to Daily Tasks, Save selection as note, Run script on this page.</small></span>
+          </label>
+          <p id="contextMenuStatus" class="hint" role="status" hidden></p>
+        </div>
+        <div class="card">
+          <h2>Keyboard shortcuts</h2>
+          <p>These are set in the manifest and can be changed at <code>chrome://extensions/shortcuts</code>.</p>
+          <table class="keys">
+            <tr><td><kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd></td><td>Toggle Flow (opens the current window mode)</td></tr>
+            <tr><td><kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd></td><td>Add current site as a task</td></tr>
+            <tr><td><kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd></td><td>Open Dashboard</td></tr>
+            <tr><td><kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd></td><td>Quick note (opens Notepad)</td></tr>
+          </table>
+          <p class="hint">One Chrome quirk, verified live: <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd> and <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> are set when the extension is installed, but Chrome does not auto-assign <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd> or <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd>. Set them once on that page (click the pencil, press the keys) — Chrome accepts both, and they stay set. Also: a keyboard shortcut cannot open the Side Panel (Chrome needs a real click for that) — in Side Panel mode, <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd> tells you to click the toolbar icon once instead of failing silently.</p>
         </div>
         <div class="card">
           <h2>Extension updates</h2>
@@ -361,7 +946,7 @@
       </section>
     </main>
 
-    <footer><span>HiddenGem Flow v1.1.0 · MIT · Open source — <span id="footCount"></span></span><a class="download-btn" href="https://github.com/BidyutRoy2/hiddengem-flow/releases" target="_blank" rel="noopener noreferrer" title="Download the latest HiddenGem Flow build from GitHub Releases"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Download HiddenGem Flow</a></footer>
+    <footer><span>HiddenGem Flow v2.1.1 · MIT · Open source — <span id="footCount"></span></span><a class="download-btn" href="https://github.com/BidyutRoy2/hiddengem-flow/releases" target="_blank" rel="noopener noreferrer" title="Download the latest HiddenGem Flow build from GitHub Releases"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Download HiddenGem Flow</a></footer>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

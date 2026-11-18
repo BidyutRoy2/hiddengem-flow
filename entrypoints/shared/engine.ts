@@ -47,19 +47,34 @@
 //  * GM_addStyle — appends a <style> element to the document.
 //  * GM (object form: GM.setValue, GM.getValue, GM.addStyle,
 //    GM.notification) is provided as well — same four functions.
-//  * Everything else (GM_xmlhttpRequest, GM_openInTab, GM_download,
-//    GM_setClipboard, unsafeWindow, ...) is NOT defined. A script that
-//    calls one gets a ReferenceError/TypeError at runtime and a scanner
-//    warning at install time — never a fake that pretends to work.
+//  * v1.3 — GM_xmlhttpRequest + GM_setClipboard, both @grant-gated:
+//    the shim only DEFINES them when the script declares the matching
+//    @grant, so a script without the grant gets a ReferenceError, never
+//    a fake. GM_xmlhttpRequest also needs @connect: the shim signals
+//    through the DOM (same A-04 pattern), the relay forwards the
+//    request to the background, and the background fetches with
+//    credentials:"omit" ONLY when the host is in the script's @connect
+//    list (see shared/gm-xhr.ts isConnectAllowed) — a redirect to an
+//    unlisted host is refused. The response comes back as a DOM node
+//    the shim polls for (MutationObserver + 30 s timeout).
+//    GM_setClipboard tries navigator.clipboard.writeText, then
+//    document.execCommand("copy"), then a DOM signal the relay drains
+//    and copies in the isolated world. No new permission anywhere.
+//  * Everything else (GM_openInTab, GM_download, unsafeWindow, ...)
+//    is NOT defined. A script that calls one gets a ReferenceError/
+//    TypeError at runtime and a scanner warning at install time —
+//    never a fake that pretends to work.
 //
 // The shim is a string because chrome.userScripts takes code, not a
 // function. `scriptId` is JSON-encoded into it so a hostile script name
 // cannot break out of the string.
 
+import { runnableScripts } from "./folders";
 import {
   clearScriptError,
   loadScriptErrors,
   loadScripts,
+  parseMetadata,
   saveScriptErrors,
   saveScripts,
   setScriptError,
@@ -95,7 +110,29 @@ declare const chrome: any;
 export async function scriptHasHostAccess(script: Script): Promise<boolean> {
   try {
     if (typeof chrome === "undefined" || !chrome.permissions?.contains) return false;
-    return await chrome.permissions.contains({ origins: script.matches });
+    if (await chrome.permissions.contains({ origins: script.matches })) return true;
+    // v1.3 (A-33): origin-widened fallback. A persistent grant for
+    // `https://example.com/*` covers a script matching
+    // `https://example.com/foo/*` — contains() with the narrow
+    // pattern alone would say false. Widen each @match to its origin
+    // and re-check. (This does NOT cover activeTab grants — those are
+    // invisible to contains() entirely; the background's float ping
+    // covers those. See background.ts hasHostAccessForTab.)
+    const origins: string[] = [];
+    for (const m of script.matches || []) {
+      const mm = String(m ?? "").replace(/^\*:\/\//, "https://");
+      try {
+        const u = new URL(mm);
+        if ((u.protocol === "http:" || u.protocol === "https:") && u.hostname) {
+          const origin = `${u.protocol}//${u.host}/*`;
+          if (!origins.includes(origin)) origins.push(origin);
+        }
+      } catch {
+        // Unparseable pattern — the exact check above already ran.
+      }
+    }
+    if (origins.length > 0) return await chrome.permissions.contains({ origins });
+    return false;
   } catch {
     return false;
   }
@@ -121,19 +158,44 @@ export const GM_RELAY_BASE_ID = "hgf-gm-relay";
 /**
  * The GM shim, injected BEFORE the user's script code in the same
  * userscript `js` entry, so GM_* exists when the script runs.
+ *
+ * `grants` is the script's declared @grant list: GM_xmlhttpRequest
+ * and GM_setClipboard are defined ONLY when granted (v1.3) — a
+ * script without the grant gets a ReferenceError, never a fake.
+ * GM_setValue / GM_getValue / GM_notification / GM_addStyle are
+ * always defined (they were the v1.0 surface).
  */
-export function gmShimCode(scriptId: string): string {
+export function gmShimCode(scriptId: string, grants: string[] = []): string {
   const id = JSON.stringify(String(scriptId));
-  return `(function(){var __id=${id};var __prefix=${JSON.stringify(GM_STORAGE_PREFIX)}+__id+":";function __set(k,v){try{localStorage.setItem(__prefix+String(k),JSON.stringify(v));}catch(e){}}function __get(k,d){try{var r=localStorage.getItem(__prefix+String(k));if(r===null)return d;try{return JSON.parse(r);}catch(e){return r;}}catch(e){return d;}}function __addStyle(css){try{var s=document.createElement("style");s.textContent=String(css);(document.head||document.documentElement).appendChild(s);return s;}catch(e){return null;}}function __notify(a,b){try{var o=(a&&typeof a==="object")?a:{text:a,title:b};var __t=String(o.title||"HiddenGem Flow").slice(0,80);var __m=String(o.text||"").slice(0,400);var __id="n"+Date.now().toString(36)+Math.floor(Math.random()*1e9).toString(36);if(typeof chrome!=="undefined"&&chrome.runtime&&typeof chrome.runtime.sendMessage==="function"){try{chrome.runtime.sendMessage({type:"hiddengemflow:gm-notify",title:__t,message:__m,id:__id});return;}catch(e){}}try{var __d=document.createElement("div");__d.setAttribute("data-hgf-gm-notify","");__d.setAttribute("data-id",__id);__d.setAttribute("data-title",__t);__d.setAttribute("data-message",__m);__d.style.display="none";(document.documentElement||document.body||document).appendChild(__d);}catch(e){}}catch(e){}}window.GM_setValue=__set;window.GM_getValue=__get;window.GM_addStyle=__addStyle;window.GM_notification=__notify;window.GM={setValue:__set,getValue:__get,addStyle:__addStyle,notification:__notify};})();`;
+  const hasXhr = Array.isArray(grants) && grants.includes("GM_xmlhttpRequest");
+  const hasClip = Array.isArray(grants) && grants.includes("GM_setClipboard");
+  // XHR waiter registry + response observer (only when granted).
+  const xhrPart = hasXhr
+    ? `var __xhrWaiters={};function __xhrResp(node){try{var raw=node.textContent||"";node.remove();var r;try{r=JSON.parse(raw);}catch(e){return;}var w=__xhrWaiters[r.id];if(!w)return;delete __xhrWaiters[r.id];if(w.timer)clearTimeout(w.timer);if(r.ok){if(typeof w.onload==="function")w.onload({responseText:r.responseText||"",response:r.responseText||"",status:r.status||0,statusText:r.statusText||"",finalUrl:r.finalUrl||"",readyState:4});}else{if(typeof w.onerror==="function")w.onerror({responseText:"",response:"",status:r.status||0,statusText:r.statusText||"",finalUrl:r.finalUrl||"",readyState:4,error:r.error||"Request failed"});}}catch(e){}}function __xhrWatch(){try{var mo=new MutationObserver(function(muts){for(var i=0;i<muts.length;i++){var added=muts[i].addedNodes;for(var j=0;j<added.length;j++){var n=added[j];if(n&&n.nodeType===1&&n.hasAttribute&&n.hasAttribute("data-hgf-gm-xhr-resp"))__xhrResp(n);}}});mo.observe(document.documentElement||document,{childList:true,subtree:true});}catch(e){}}function __xhr(d){try{var details=(d&&typeof d==="object")?d:{};var url=String(details.url||"");if(!url){if(typeof details.onerror==="function")details.onerror({status:0,statusText:"No URL",readyState:4,error:"GM_xmlhttpRequest: no URL"});return null;}var __rid="x"+Date.now().toString(36)+Math.floor(Math.random()*1e9).toString(36);var req={id:__rid,scriptId:__id,url:url,method:String(details.method||"GET"),data:typeof details.data==="string"?details.data.slice(0,100000):"",headers:{}};if(details.headers&&typeof details.headers==="object"){try{for(var k in details.headers){if(typeof details.headers[k]==="string")req.headers[String(k).slice(0,100)]=details.headers[k].slice(0,1000);}}catch(e){}}var waiter={onload:details.onload,onerror:details.onerror,ontimeout:details.ontimeout,timer:null};waiter.timer=setTimeout(function(){var w=__xhrWaiters[__rid];if(!w)return;delete __xhrWaiters[__rid];if(typeof w.ontimeout==="function")w.ontimeout({status:0,statusText:"Timeout",readyState:4});else if(typeof w.onerror==="function")w.onerror({status:0,statusText:"Timeout",readyState:4,error:"GM_xmlhttpRequest timed out after 30 s"});},30000);__xhrWaiters[__rid]=waiter;var __n=document.createElement("div");__n.setAttribute("data-hgf-gm-xhr","");__n.setAttribute("data-id",__rid);__n.textContent=JSON.stringify(req);__n.style.display="none";(document.documentElement||document.body||document).appendChild(__n);return{abort:function(){var w=__xhrWaiters[__rid];if(w){if(w.timer)clearTimeout(w.timer);delete __xhrWaiters[__rid];}}};}catch(e){if(d&&typeof d.onerror==="function")d.onerror({status:0,statusText:String(e),readyState:4,error:String(e)});return null;}}__xhrWatch();`
+    : "";
+  const clipPart = hasClip
+    ? `function __clipFallback(t){try{var ta=document.createElement("textarea");ta.value=t;ta.style.cssText="position:fixed;opacity:0";(document.body||document.documentElement).appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand("copy");}catch(e){}ta.remove();if(ok)return;}catch(e){}try{var d=document.createElement("div");d.setAttribute("data-hgf-gm-clipboard","");d.textContent=t;d.style.display="none";(document.documentElement||document.body||document).appendChild(d);}catch(e){}}function __clip(text){try{var t=String(text==null?"":text).slice(0,100000);if(typeof navigator!=="undefined"&&navigator.clipboard&&typeof navigator.clipboard.writeText==="function"){try{var p=navigator.clipboard.writeText(t);if(p&&typeof p.catch==="function")p.catch(function(){__clipFallback(t);});return;}catch(e){}}__clipFallback(t);}catch(e){}}`
+    : "";
+  const gmObj = `{setValue:__set,getValue:__get,addStyle:__addStyle,notification:__notify${hasXhr ? ",xmlhttpRequest:__xhr" : ""}${hasClip ? ",setClipboard:__clip" : ""}}`;
+  return `(function(){var __id=${id};var __prefix=${JSON.stringify(GM_STORAGE_PREFIX)}+__id+":";function __set(k,v){try{localStorage.setItem(__prefix+String(k),JSON.stringify(v));}catch(e){}}function __get(k,d){try{var r=localStorage.getItem(__prefix+String(k));if(r===null)return d;try{return JSON.parse(r);}catch(e){return r;}}catch(e){return d;}}function __addStyle(css){try{var s=document.createElement("style");s.textContent=String(css);(document.head||document.documentElement).appendChild(s);return s;}catch(e){return null;}}function __notify(a,b){try{var o=(a&&typeof a==="object")?a:{text:a,title:b};var __t=String(o.title||"HiddenGem Flow").slice(0,80);var __m=String(o.text||"").slice(0,400);var __id2="n"+Date.now().toString(36)+Math.floor(Math.random()*1e9).toString(36);if(typeof chrome!=="undefined"&&chrome.runtime&&typeof chrome.runtime.sendMessage==="function"){try{chrome.runtime.sendMessage({type:"hiddengemflow:gm-notify",title:__t,message:__m,id:__id2});return;}catch(e){}}try{var __d=document.createElement("div");__d.setAttribute("data-hgf-gm-notify","");__d.setAttribute("data-id",__id2);__d.setAttribute("data-title",__t);__d.setAttribute("data-message",__m);__d.style.display="none";(document.documentElement||document.body||document).appendChild(__d);}catch(e){}}catch(e){}}${xhrPart}${clipPart}window.GM_setValue=__set;window.GM_getValue=__get;window.GM_addStyle=__addStyle;window.GM_notification=__notify;${hasXhr ? "window.GM_xmlhttpRequest=__xhr;" : ""}${hasClip ? "window.GM_setClipboard=__clip;" : ""}window.GM=${gmObj};})();`;
 }
 
-/** The chrome.userScripts registration object for one script. */
+/** The chrome.userScripts registration object for one script. @run-at from the metadata (default document_idle). */
 export function buildRegisteredScript(script: Script): Record<string, unknown> {
+  let runAt = "document_idle";
+  try {
+    const meta = parseMetadata(script.code);
+    if (meta.runAt === "document_start" || meta.runAt === "document_end" || meta.runAt === "document_idle") {
+      runAt = meta.runAt;
+    }
+  } catch {
+    // Keep the default.
+  }
   return {
     id: script.id,
     matches: script.matches,
-    js: [{ code: `${gmShimCode(script.id)}\n;${script.code}` }],
-    runAt: "document_idle",
+    js: [{ code: `${gmShimCode(script.id, script.grants)}\n;${script.code}` }],
+    runAt,
     world: "USER_SCRIPT",
   };
 }
@@ -168,6 +230,13 @@ export async function checkUserScripts(): Promise<{ available: boolean; error?: 
  * it next to the script; on success any old error is cleared.
  */
 export async function registerScript(script: Script): Promise<void> {
+  // v1.3: archived scripts never run — the engine refuses them even
+  // when called directly (e.g. after a restore that re-enables one).
+  if (script.archived === true) {
+    const msg = "Not registered: this script is archived. Restore it first.";
+    await setScriptError(script.id, msg);
+    throw new Error(msg);
+  }
   if (!script.matches || script.matches.length === 0) {
     const msg = "Not registered: this script has no @match patterns, so it would run nowhere. Add an @match line to run it.";
     await setScriptError(script.id, msg);
@@ -208,8 +277,8 @@ export async function unregisterScript(id: string): Promise<void> {
  */
 export async function registerEnabledScripts(scripts: Script[]): Promise<Record<string, string>> {
   const errors: Record<string, string> = {};
-  for (const script of scripts) {
-    if (!script.enabled) continue;
+  // v1.3: archived scripts never run — only enabled AND unarchived ones register.
+  for (const script of runnableScripts(scripts)) {
     try {
       await registerScript(script);
     } catch (err) {
@@ -304,11 +373,42 @@ export async function ensureGmRelayForEnabled(): Promise<void> {
   try {
     const scripts = await loadScripts();
     const matches: string[] = [];
-    for (const s of scripts) {
-      if (!s.enabled) continue;
+    for (const s of runnableScripts(scripts)) {
       for (const m of s.matches || []) if (!matches.includes(m)) matches.push(m);
     }
     await ensureGmRelay(matches);
+  } catch {}
+}
+
+/**
+ * v2.1.0 (Studio Test): register the relay for ONE pattern WITHOUT
+ * pruning the others. ensureGmRelay() above removes relay
+ * registrations for patterns it was not given — calling it with only
+ * the test pattern would unregister the relay for every enabled
+ * script. A temporary test must never do that. Never throws.
+ */
+export async function ensureGmRelayForPattern(pattern: string): Promise<void> {
+  try {
+    if (typeof chrome === "undefined" || !chrome?.scripting?.registerContentScripts) return;
+    if (typeof pattern !== "string" || !pattern) return;
+    const id = relayIdFor(pattern);
+    try {
+      await chrome.scripting.unregisterContentScripts({ ids: [id] });
+    } catch {}
+    try {
+      await chrome.scripting.registerContentScripts([
+        {
+          id,
+          matches: [pattern],
+          js: ["gm-relay.js"],
+          runAt: "document_idle",
+          world: "ISOLATED",
+          persistAcrossSessions: true,
+        },
+      ]);
+    } catch {
+      // No host access for this pattern yet (or Chrome refused it).
+    }
   } catch {}
 }
 
@@ -325,7 +425,7 @@ export async function setScriptEnabled(id: string, enabled: boolean): Promise<Sc
   await saveScripts(scripts);
   const updated = scripts.find((s) => s.id === id);
   if (!updated) return scripts;
-  if (enabled) {
+  if (enabled && !updated.archived) {
     try {
       await registerScript(updated);
     } catch {

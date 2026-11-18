@@ -35,11 +35,49 @@
 
 declare const chrome: any;
 
+import { HGF_VARIANT, type HGFVariant } from "./variant";
+
 export const UPDATE_KEY = "hiddengemflow.update.v1";
 export const MSG_CHECK_UPDATES = "hiddengemflow:check-updates";
 
 export const RELEASES_URL = "https://api.github.com/repos/BidyutRoy2/hiddengem-flow/releases";
 export const RELEASE_ZIP_ASSET = "hiddengem-flow-extension.zip";
+/**
+ * v2.1.0: two builds, two release assets. The checker picks the asset
+ * matching the installed variant, by filename:
+ *  * owner:  hiddengem-flow-v<version>-owner-<YYYYMMDD>.zip
+ *  * public: hiddengem-flow-v<version>-<YYYYMMDD>.zip (no "-owner-")
+ * The patterns are version/date agnostic on purpose — the next
+ * release keeps the same shape with a new stamp. The legacy
+ * hiddengem-flow-extension.zip name is still accepted as a fallback
+ * (older releases only carried that one asset), so an old release
+ * never reads as "no build available" for either variant.
+ */
+export const RELEASE_ZIP_ASSET_OWNER_PATTERN = /^hiddengem-flow-v[0-9.]+-owner-[0-9]+\.zip$/;
+export const RELEASE_ZIP_ASSET_PUBLIC_PATTERN = /^hiddengem-flow-v[0-9.]+-[0-9]+\.zip$/;
+
+/** Does this asset filename belong to the given variant's build? Pure. */
+export function assetNameForVariant(name: string, variant: HGFVariant): boolean {
+  if (typeof name !== "string" || !name) return false;
+  if (variant === "owner") return RELEASE_ZIP_ASSET_OWNER_PATTERN.test(name);
+  return RELEASE_ZIP_ASSET_PUBLIC_PATTERN.test(name) && !name.includes("-owner-");
+}
+
+/**
+ * Pick the zip asset's updated_at out of a release's asset list for
+ * the given variant: a variant-matching asset first, the legacy
+ * single-asset name second, "" when neither exists. Pure.
+ */
+export function pickReleaseAssetUpdatedAt(assets: unknown, variant: HGFVariant): string {
+  const list = Array.isArray(assets) ? assets : [];
+  let legacy = "";
+  for (const a of list) {
+    if (!isPlainObject(a) || typeof a.name !== "string") continue;
+    if (assetNameForVariant(a.name, variant) && typeof a.updated_at === "string") return a.updated_at;
+    if (a.name === RELEASE_ZIP_ASSET && typeof a.updated_at === "string" && !legacy) legacy = a.updated_at;
+  }
+  return legacy;
+}
 /** Pre-release page — the distribution channel for unpacked builds. */
 export const RELEASE_PAGE_URL = "https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v1.1.0-dev-20261115";
 
@@ -93,7 +131,7 @@ export const FIRST_CHECK_GRACE_MS = 2 * 60 * 60 * 1000;
  * window. BUILD_DATE is therefore a first-check AND a later-check
  * input, never the sole later-check input.
  */
-export const BUILD_DATE = "2026-11-15T05:27:00Z";
+export const BUILD_DATE = "2026-11-17T21:55:06Z";
 
 /** What a check found, as stored in chrome.storage.local. */
 export interface UpdateRecord {
@@ -193,21 +231,19 @@ export interface ReleaseInfo {
   downloadUrl: string;
 }
 
-/** Pull the checker's fields out of one raw release object. Null when it has no tag. */
-export function parseRelease(raw: unknown): ReleaseInfo | null {
+/** Pull the checker's fields out of one raw release object. Null when it has no tag.
+ * The `variant` parameter (default: the installed build's variant)
+ * decides which zip asset counts: the owner build watches the
+ * -owner- asset, the public build watches the plain one. A release
+ * carrying only the legacy hiddengem-flow-extension.zip asset counts
+ * for both (old releases). Pure. */
+export function parseRelease(raw: unknown, variant: HGFVariant = HGF_VARIANT): ReleaseInfo | null {
   if (!isPlainObject(raw)) return null;
   const tag = typeof raw.tag_name === "string" ? raw.tag_name : "";
   if (!tag) return null;
   const publishedAt = typeof raw.published_at === "string" ? raw.published_at : "";
   const downloadUrl = typeof raw.html_url === "string" ? raw.html_url : "";
-  let assetUpdatedAt = "";
-  const assets = Array.isArray(raw.assets) ? raw.assets : [];
-  for (const a of assets) {
-    if (isPlainObject(a) && a.name === RELEASE_ZIP_ASSET && typeof a.updated_at === "string") {
-      assetUpdatedAt = a.updated_at;
-      break;
-    }
-  }
+  const assetUpdatedAt = pickReleaseAssetUpdatedAt(raw.assets, variant);
   return { tag, publishedAt, assetUpdatedAt, downloadUrl };
 }
 

@@ -16,9 +16,11 @@
 //  * GM values (GM_setValue / GM_getValue) live in the page origin's
 //    localStorage, namespaced per script (see engine.ts). The page's own
 //    JavaScript can read those keys — never store secrets with GM_*.
-//  * Only four GM functions exist: GM_setValue, GM_getValue,
-//    GM_notification, GM_addStyle. Anything else a script asks for is
-//    flagged by the scanner and listed as NOT supported in the UI.
+//  * Only six GM functions exist: GM_setValue, GM_getValue,
+//    GM_notification, GM_addStyle, GM_xmlhttpRequest (@grant +
+//    @connect gated), GM_setClipboard. Anything else a script asks
+//    for is flagged by the scanner and listed as NOT supported in
+//    the UI.
 
 export interface ScriptHistoryEntry {
   version: string;
@@ -46,6 +48,12 @@ export interface Script {
   installedAt: number;
   updatedAt: number;
   history: ScriptHistoryEntry[];
+  /** v1.3 (#9): folder id, or null for Unsorted. */
+  folderId?: string | null;
+  /** v1.3 (#9): tags, lowercased, max 10. */
+  tags?: string[];
+  /** v1.3 (#9): archived scripts do not run and are restorable. */
+  archived?: boolean;
 }
 
 export interface ScriptMetadata {
@@ -58,6 +66,12 @@ export interface ScriptMetadata {
   grants: string[];
   updateURL: string | null;
   downloadURL: string | null;
+  /** v1.3: @require lines (all of them). */
+  requires: string[];
+  /** v1.3: @run-at (first occurrence), or null. */
+  runAt: string | null;
+  /** v1.3: @connect lines (all of them) — the GM_xmlhttpRequest allow-list. */
+  connects: string[];
 }
 
 export interface ScanFinding {
@@ -87,12 +101,12 @@ export const MSG_GM_NOTIFY = "hiddengemflow:gm-notify";
  */
 export const MSG_OPEN_EXTENSION_DETAILS = "hiddengemflow:open-extension-details";
 
-/** GM functions this extension actually implements (see engine.ts). */
-export const SUPPORTED_GRANTS = ["GM_setValue", "GM_getValue", "GM_notification", "GM_addStyle"];
+/** GM functions this extension actually implements (see engine.ts). v1.3 adds GM_xmlhttpRequest (@grant + @connect gated) and GM_setClipboard. */
+export const SUPPORTED_GRANTS = ["GM_setValue", "GM_getValue", "GM_notification", "GM_addStyle", "GM_xmlhttpRequest", "GM_setClipboard"];
 
 /** GM functions scripts may ask for that are NOT implemented. */
 export const UNSUPPORTED_GRANTS_NOTE =
-  "Not supported: GM_xmlhttpRequest, GM_openInTab, GM_download, GM_setClipboard, unsafeWindow and every other GM_* function.";
+  "Not supported: GM_openInTab, GM_download, unsafeWindow and every other GM_* function.";
 
 export const ALLOW_USER_SCRIPTS_STEPS =
   "chrome://extensions → HiddenGem Flow → Details → Allow User Scripts (toggle ON), then reload the page.";
@@ -153,6 +167,9 @@ const EMPTY_METADATA: ScriptMetadata = {
   grants: [],
   updateURL: null,
   downloadURL: null,
+  requires: [],
+  runAt: null,
+  connects: [],
 };
 
 /**
@@ -167,6 +184,8 @@ export function parseMetadata(code: string): ScriptMetadata {
     ...EMPTY_METADATA,
     matches: [],
     grants: [],
+    requires: [],
+    connects: [],
   };
   if (typeof code !== "string" || !code) return meta;
   let block: string | null = null;
@@ -179,7 +198,7 @@ export function parseMetadata(code: string): ScriptMetadata {
   if (!block) return meta;
   for (const rawLine of block.split("\n")) {
     const line = rawLine.trim();
-    const m = line.match(/^\/\/\s*@([A-Za-z]+)\s+(.+?)\s*$/);
+    const m = line.match(/^\/\/\s*@([A-Za-z][A-Za-z-]*)\s+(.+?)\s*$/);
     if (!m) continue;
     const key = m[1].toLowerCase();
     const value = m[2].trim();
@@ -212,6 +231,15 @@ export function parseMetadata(code: string): ScriptMetadata {
         break;
       case "downloadurl":
         if (meta.downloadURL === null) meta.downloadURL = value;
+        break;
+      case "require":
+        meta.requires.push(value);
+        break;
+      case "run-at":
+        if (meta.runAt === null) meta.runAt = value;
+        break;
+      case "connect":
+        meta.connects.push(value);
         break;
       default:
         break;
@@ -342,9 +370,13 @@ export function securityScan(code: string, metadata?: ScriptMetadata | null): Sc
   n = countMatches(clean, /\bGM_xmlhttpRequest\s*\(/g);
   if (n > 0)
     findings.push({
-      severity: "high",
+      // v1.3: implemented, but gated — the call only works when the
+      // script declares @grant GM_xmlhttpRequest AND lists the target
+      // host in @connect. A script without both gets a runtime error,
+      // never a silent cross-origin fetch.
+      severity: "medium",
       rule: "GM_xmlhttpRequest",
-      message: `Calls GM_xmlhttpRequest (${n}×) — cross-origin requests that bypass the page's CORS rules. Not supported by HiddenGem Flow, so the call will fail — but it shows the script expects that power.`,
+      message: `Calls GM_xmlhttpRequest (${n}×) — cross-origin requests that only work with @grant GM_xmlhttpRequest AND the target host in @connect. Without both, the call fails.`,
     });
   n = countMatches(clean, /\bdocument\.cookie\b/g);
   if (n > 0) findings.push({ severity: "high", rule: "document.cookie", message: `Reads/writes document.cookie (${n}×) — can steal session cookies.` });
@@ -375,7 +407,7 @@ export function securityScan(code: string, metadata?: ScriptMetadata | null): Sc
   const gmCalls = new Set<string>();
   for (const m of clean.matchAll(/\b(GM_[A-Za-z]+)\s*\(/g)) gmCalls.add(m[1]);
   for (const fn of [...gmCalls].sort()) {
-    if (fn === "GM_xmlhttpRequest") continue; // already high above
+    if (fn === "GM_xmlhttpRequest") continue; // already medium above
     if (!SUPPORTED_GRANTS.includes(fn)) {
       findings.push({
         severity: "medium",
@@ -490,6 +522,7 @@ export function createScript(
   now: number = Date.now(),
   id: string = newId("script"),
   fallbackName?: string,
+  extra?: { folderId?: string | null; tags?: string[] },
 ): Script {
   if (typeof code !== "string" || !code.trim()) throw new Error("Script code is empty.");
   const meta = parseMetadata(code);
@@ -512,6 +545,9 @@ export function createScript(
     installedAt: now,
     updatedAt: now,
     history: [],
+    folderId: extra?.folderId ?? null,
+    tags: Array.isArray(extra?.tags) ? extra.tags.slice(0, 10) : [],
+    archived: false,
   };
 }
 
@@ -583,6 +619,21 @@ function isScript(raw: unknown): raw is Script {
   );
 }
 
+/**
+ * v1.3: fill the folder/tag/archive defaults on scripts saved before
+ * v1.3 (or restored from an old backup). Never throws away a script —
+ * a missing folderId is Unsorted, missing tags are [], missing
+ * archived is false.
+ */
+export function normalizeScript(raw: Script): Script {
+  return {
+    ...raw,
+    folderId: typeof raw.folderId === "string" ? raw.folderId : null,
+    tags: Array.isArray(raw.tags) ? raw.tags.filter((t) => typeof t === "string").slice(0, 10) : [],
+    archived: raw.archived === true,
+  };
+}
+
 /** Load all installed scripts; [] when nothing is saved or storage is unavailable. */
 export async function loadScripts(): Promise<Script[]> {
   if (!storageAvailable()) return [];
@@ -590,7 +641,7 @@ export async function loadScripts(): Promise<Script[]> {
     const data = await chrome.storage.local.get(SCRIPTS_KEY);
     const raw = data?.[SCRIPTS_KEY];
     if (!Array.isArray(raw)) return [];
-    return raw.filter(isScript);
+    return raw.filter(isScript).map(normalizeScript);
   } catch {
     return [];
   }
