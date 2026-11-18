@@ -210,7 +210,7 @@ function pageTemplate(opts: FloatPageOptions): string {
         <div class="layout-panel" data-layout-panel hidden></div>
         <a class="edit-layout" data-act="edit-layout">✎ Edit layout</a>
         <button type="button" class="dash">Open Dashboard</button>
-        <div class="foot">HiddenGem Flow v2.1.1<br><a class="download-btn" href="${RELEASES_PAGE_URL}" target="_blank" rel="noopener noreferrer" title="Download the latest HiddenGem Flow build">${DOWNLOAD_SVG} Download HiddenGem Flow</a><p class="backup-line" data-backup-line></p></div>
+        <div class="foot">HiddenGem Flow v3.0.0<br><a class="download-btn" href="${RELEASES_PAGE_URL}" target="_blank" rel="noopener noreferrer" title="Download the latest HiddenGem Flow build">${DOWNLOAD_SVG} Download HiddenGem Flow</a><p class="backup-line" data-backup-line></p></div>
       </div>
     </div>
   `;

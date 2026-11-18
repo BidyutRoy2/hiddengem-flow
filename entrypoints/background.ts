@@ -129,7 +129,7 @@ import {
   validateUserStyleCss,
 } from "./shared/userstyles";
 import { MSG_SCRATCHPAD_RUN, validateScratchpad, type ScratchpadKind } from "./shared/scratchpad";
-import { GM_VALUE_PREVIEW_MAX, MSG_GM_VALUES_READ, parseGmValues } from "./shared/storage-viewer";
+import { MSG_GM_VALUES_READ, parseGmValues } from "./shared/storage-viewer";
 import {
   SNOOZE_KEY,
   loadSnoozes,
@@ -144,11 +144,9 @@ import {
   SCHEDULES_KEY,
   createScheduleRunEntry,
   enabledSchedules,
-  loadScheduleRuns,
   loadSchedules,
   logScheduleRun,
   removeSchedule,
-  saveScheduleRuns,
   saveSchedules,
   scheduleAlarmName,
   urlFromMatchPattern,
@@ -3814,7 +3812,7 @@ export default defineBackground(() => {
   );
 
   chrome.runtime.onInstalled.addListener((details: { reason?: string; previousVersion?: string }) => {
-    console.info("[HiddenGem Flow] installed — v2.1.1");
+    console.info("[HiddenGem Flow] installed — v3.0.0");
     void reregisterEnabledFromStorage();
     void syncUserStyles();
     void ensureGmRelayForEnabled();

@@ -27,8 +27,6 @@
 import { checkUserScripts, registerEnabledScripts, registerScript, requestHostAccess, scriptHasHostAccess, setScriptEnabled, unregisterScript } from "../shared/engine";
 import {
   EXTERNAL_SEARCH_NOTE,
-  MAX_INSTALL_SIZE_BYTES,
-  formatBytes,
   highlightEditor,
   isFetchableScriptUrl,
   lintEditor,
@@ -55,7 +53,6 @@ import {
   renameFolder,
   saveFolders,
   scriptsInFolder,
-  setScriptTags,
   unarchiveScript,
   type Folder,
 } from "../shared/folders";
@@ -107,6 +104,7 @@ import {
   parseMetadata,
   rollbackTo,
   saveScripts,
+  SCRIPTS_KEY,
   scriptsForUrl,
   securityScan,
   updateScriptCode,
@@ -242,11 +240,12 @@ import {
   type Snooze,
   type SnoozeTarget,
 } from "../shared/snooze";
-import { BUILTIN_COLLECTIONS, loadFollowedCollections, resolveCollections, saveFollowedCollections, searchStore, toggleCollectionFollow } from "../shared/collections";
+import { loadFollowedCollections, resolveCollections, saveFollowedCollections, searchStore, toggleCollectionFollow } from "../shared/collections";
 import { assembleDossier } from "../shared/dossier";
 import { LOCAL_FILE_SPIKE, localFileName, validateLocalFileReimport } from "../shared/local-file";
 import { mountFloatNotes, type FloatNotesHandle } from "../shared/notes-ui";
 import { IS_OWNER_BUILD } from "../shared/variant";
+import { FLOAT_POS_KEY as POS_KEY } from "../shared/float-layout";
 import {
   MSG_SCHEDULES_RESCHEDULE,
   MSG_SCHEDULE_RUN_NOW,
@@ -270,7 +269,6 @@ import {
   saveSyncSettings,
   saveSyncTokens,
   syncOriginPattern,
-  syncTokenStored,
   validateSyncTarget,
   type SyncProvider,
   type SyncSettings,
@@ -278,9 +276,6 @@ import {
 } from "../shared/sync";
 
 declare const chrome: any;
-
-const SCRIPTS_KEY = "hiddengemflow.scripts.v1";
-const POS_KEY = "hiddengemflow.floating.pos";
 
 function countOf(value: unknown): number {
   return Array.isArray(value) ? value.length : 0;
@@ -445,7 +440,8 @@ function renderUpdateState(record: UpdateRecord | null): void {
     text.textContent = updateBannerText(record as UpdateRecord);
     // The download control is a real link (target=_blank); point it at
     // the release page from the record. The static href in the HTML is
-    // the same release page as a fallback.
+    // the latest published release page as a fallback (finding A-26:
+    // it must be updated to the current publish tag on every release).
     if (download && (record as UpdateRecord).downloadUrl) {
       download.href = (record as UpdateRecord).downloadUrl;
     }

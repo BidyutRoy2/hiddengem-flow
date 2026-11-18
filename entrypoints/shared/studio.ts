@@ -41,7 +41,6 @@ import {
   buildModelsCall,
   cloudAvailable,
   defaultAiSettings,
-  defaultAiTokens,
   describeDraftFailure,
   extractCloudDraft,
   extractGeminiDraft,
@@ -76,19 +75,16 @@ import {
   STORE_TOKEN_KEY,
   buildStoreEntry,
   buildStoreUserJs,
-  defaultStoreConfig,
   filenameFromCodeUrl,
   filenameFromCodeUrlForDelete,
   ghDeleteFile,
   ghGetFile,
   ghPutFile,
-  jsdelivrIndexUrl,
   loadLiveStoreIndex,
   parseStoreIndexText,
   parseStoreMeta,
   purgeFile,
   rawCodeUrl,
-  rawIndexUrl,
   sanitizeFilename,
   suggestVersionBump,
   testStoreConnection,
@@ -100,7 +96,7 @@ import type { StoreIndex, StoreScript } from "./store";
 
 declare const chrome: any;
 
-/** The Studio's built-in master prompt template (v2, from docs/master-prompt-template.md) + step reporting for the Test view. */
+/** The Studio's built-in master prompt template (v2 — design copy kept at hgf-studio-design/master-prompt-template.md) + step reporting for the Test view. */
 export const STUDIO_DEFAULT_TEMPLATE = `You are writing a userscript for HiddenGem Flow, a Chrome MV3 extension that runs userscripts with chrome.userScripts. The user will paste your script into the extension's script editor. Output the COMPLETE script in one code block, ready to paste, plus a 2-line summary before it.
 
 GOAL: Do NOT ask for a goal. Derive the goal from the WEBSITE + TASKS below. The script's @name and @description must come from them.
@@ -2186,20 +2182,25 @@ export async function initStudio(context: StudioContext): Promise<void> {
     void renderTestHistory();
     void refreshAiState();
   });
-  // Settings storage-keys list: the static HTML names the AI keys
-  // "(AI authoring)" so the public build contains no Studio strings
-  // at all. In the owner build they live in the Studio, and the three
-  // Studio keys exist only here — relabel + append at runtime.
-  const keyAi = document.getElementById("keyAi");
-  if (keyAi && keyAi.textContent) keyAi.textContent = keyAi.textContent.replace("(AI authoring)", "(Script Studio)");
-  const keyAiTokens = document.getElementById("keyAiTokens");
-  if (keyAiTokens && keyAiTokens.textContent) keyAiTokens.textContent = keyAiTokens.textContent.replace("(AI authoring)", "(Script Studio)");
-  if (keyAiTokens) {
-    keyAiTokens.insertAdjacentHTML(
+  // Settings storage-keys list: the AI keys and the Cloud LLM network
+  // note are owner-only, so the public build's static HTML carries no
+  // trace of them at all. The owner build injects them here at runtime.
+  const keySyncTokens = document.getElementById("keySyncTokens");
+  if (keySyncTokens) {
+    keySyncTokens.insertAdjacentHTML(
       "afterend",
-      `<li><code>hiddengemflow.studio.template.v1</code> — the Script Studio master prompt template, when edited (absent = the built-in default)</li>` +
+      `<li><code>hiddengemflow.ai.v1</code> — AI authoring settings WITHOUT the API key: cloud opt-in, provider, model (Script Studio)</li>` +
+        `<li><code>hiddengemflow.ai.tokens.v1</code> — cloud LLM API keys, one per provider — NEVER in backups, NEVER in logs, each sent only to its own provider (Script Studio)</li>` +
+        `<li><code>hiddengemflow.studio.template.v1</code> — the Script Studio master prompt template, when edited (absent = the built-in default)</li>` +
         `<li><code>hiddengemflow.store.token.v1</code> — the Official Store token (GitHub fine-grained PAT) — NEVER in backups, NEVER in logs, sent only to api.github.com (Script Studio)</li>` +
         `<li><code>hiddengemflow.studio.tests.v1</code> — the last 20 Script Studio test runs — local working state, NOT backed up</li>`,
+    );
+  }
+  const netSlot = document.getElementById("netCloudLlmSlot");
+  if (netSlot) {
+    netSlot.insertAdjacentHTML(
+      "beforeend",
+      `; (5) <strong>Cloud LLM</strong> (Script Studio) — only when you opt in with a provider + your own key: your prompt goes to the provider you picked (Groq, Google, NVIDIA, OpenRouter, Together, Hugging Face, Cerebras, Mistral, or your own custom endpoint), and the reply is shown as a draft, never installed without your confirm`,
     );
   }
   await initGenerateView();

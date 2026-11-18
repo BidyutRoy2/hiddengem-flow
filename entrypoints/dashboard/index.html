@@ -12,7 +12,7 @@
       <img class="wordmark" src="/logo-v2-wordmark.png" alt="HiddenGem Flow — emerald gem with gold flow" />
       <div class="top-text">
         <h1>HiddenGem Flow</h1>
-        <p>Your daily tasks and scripts, one flow. v2.1.1</p>
+        <p>Your daily tasks and scripts, one flow. v3.0.0</p>
       </div>
       <span id="backupChip" class="backup-chip" role="status" hidden></span>
       <a class="telegram-btn" href="https://t.me/hiddengemnews" target="_blank" rel="noopener noreferrer" title="Join HiddenGem on Telegram — t.me/hiddengemnews">
@@ -46,7 +46,7 @@
           <p id="updateBannerText"></p>
           <p id="updateHowTo" class="hint" hidden>How to update: 1. Click <b>Download the new build</b> and unzip it. 2. In your unpacked extension folder, replace all files with the new ones. 3. Open <code>chrome://extensions</code> and press <b>Reload</b> on HiddenGem Flow. Do not remove the extension — removing deletes your saved tasks and scripts.</p>
           <div class="row">
-            <a id="updateDownload" class="primary" href="https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v1.1.0-dev-20261115" target="_blank" rel="noopener noreferrer">Download the new build</a>
+            <a id="updateDownload" class="primary" href="https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v2.1.1-dev-20261118" target="_blank" rel="noopener noreferrer">Download the new build</a>
             <button id="updateHowToBtn" type="button" class="secondary">How to update</button>
             <button id="updateDismissBtn" type="button" class="secondary">Dismiss</button>
           </div>
@@ -58,7 +58,7 @@
               <div><dt>Saved task sites</dt><dd id="stat-tasks">0</dd></div>
               <div><dt>Installed scripts</dt><dd id="stat-scripts">0</dd></div>
               <div><dt>Notes</dt><dd id="stat-notes">0</dd></div>
-              <div><dt>Extension</dt><dd>v2.1.1</dd></div>
+              <div><dt>Extension</dt><dd>v3.0.0</dd></div>
             </dl>
             <p class="hint">These are live counts from extension storage — 0 because nothing has been saved yet. Nothing here is demo data.</p>
           </div>
@@ -897,9 +897,7 @@
             <li><code>hiddengemflow.schedules.v1</code> — per-script schedules: opt-in + interval per script (Later)</li>
             <li><code>hiddengemflow.schedules.runs.v1</code> — scheduled-run log, last 50 runs — live run state, NOT backed up (Later)</li>
             <li><code>hiddengemflow.sync.v1</code> — sync settings WITHOUT tokens: on/off, provider, WebDAV URL / Gist id / Drive file id, auto-sync interval, last sync (Later)</li>
-            <li><code>hiddengemflow.sync.tokens.v1</code> — provider tokens — NEVER in backups, NEVER in logs, sent only to the provider you picked (Later)</li>
-            <li id="keyAi"><code>hiddengemflow.ai.v1</code> — AI authoring settings WITHOUT the API key: cloud opt-in, provider, model (AI authoring)</li>
-            <li id="keyAiTokens"><code>hiddengemflow.ai.tokens.v1</code> — cloud LLM API keys, one per provider — NEVER in backups, NEVER in logs, each sent only to its own provider (AI authoring)</li>
+            <li id="keySyncTokens"><code>hiddengemflow.sync.tokens.v1</code> — provider tokens — NEVER in backups, NEVER in logs, sent only to the provider you picked (Later)</li>
             <li>Site dossier: derived from the keys above — no storage key of its own. Scratchpad: no storage at all (runs once, never saved). Local-file handles: kept in the dashboard page's IndexedDB only, never in storage and never in backups.</li>
           </ul>
           <div class="row">
@@ -913,7 +911,7 @@
             <li><strong>Alarms</strong> (<code>alarms</code> permission, no warning) drive the reminders: one alarm per task reminder, one for the daily nudge, one for scheduled Open All, one per scheduled Flow, one per note due date. Alarms wake the service worker only to fire — nothing runs in the background between alarms. <strong>Later:</strong> one alarm per enabled scheduled script (<code>hgf-sched-…</code>) and one for periodic sync (<code>hgf-sync</code>, only while sync is on with an interval).</li>
             <li><strong>Side Panel</strong> (<code>sidePanel</code> permission, no warning) docks the same floating UI at the side of the browser. <strong>Context menus</strong> (<code>contextMenus</code> permission, no warning) add the right-click menu. Neither permission shows a warning at install.</li>
           </ul>
-          <p><strong>Network:</strong> almost everything is user-triggered — nothing is sent to any server except (1) the best-effort favicon image (Google s2) shown next to each task site — a letter tile shows instead if it fails; (2) a script import from a URL, fetched once when you click Fetch, and the page you fetch can see the request; (3) <strong>Load store</strong>, which fetches the Official Store index (raw.githubusercontent, then jsDelivr), and opening a store script's detail view, which fetches its code once. The Smart Notification Bridge never fetches on its own — it reads the cached store copy. No analytics, no telemetry. The run log only records tabs this extension opened. The one exception is the <strong>update checker</strong>: it asks api.github.com for the latest release at most once every 6 hours (on startup/install and when this dashboard opens), plus whenever you click <strong>Check for updates</strong> below. It sends no data about you — the request is a plain public release listing. <strong>Later:</strong> (4) <strong>Sync</strong> — only when you turn it on and press Sync now (or set an interval): the backup payload goes to the provider you picked (your WebDAV server, api.github.com for Gist, googleapis.com for Drive), with the token you pasted; (5) <strong>Cloud LLM</strong> (AI authoring) — only when you opt in with a provider + your own key: your prompt goes to the provider you picked (Groq, Google, NVIDIA, OpenRouter, Together, Hugging Face, Cerebras, Mistral, or your own custom endpoint), and the reply is shown as a draft, never installed without your confirm.</p>
+          <p><strong>Network:</strong> almost everything is user-triggered — nothing is sent to any server except (1) the best-effort favicon image (Google s2) shown next to each task site — a letter tile shows instead if it fails; (2) a script import from a URL, fetched once when you click Fetch, and the page you fetch can see the request; (3) <strong>Load store</strong>, which fetches the Official Store index (raw.githubusercontent, then jsDelivr), and opening a store script's detail view, which fetches its code once. The Smart Notification Bridge never fetches on its own — it reads the cached store copy. No analytics, no telemetry. The run log only records tabs this extension opened. The one exception is the <strong>update checker</strong>: it asks api.github.com for the latest release at most once every 6 hours (on startup/install and when this dashboard opens), plus whenever you click <strong>Check for updates</strong> below. It sends no data about you — the request is a plain public release listing. <strong>Later:</strong> (4) <strong>Sync</strong> — only when you turn it on and press Sync now (or set an interval): the backup payload goes to the provider you picked (your WebDAV server, api.github.com for Gist, googleapis.com for Drive), with the token you pasted<span id="netCloudLlmSlot"></span>.</p>
         </div>
         <div class="card">
           <h2>Right-click menu</h2>
@@ -946,7 +944,7 @@
       </section>
     </main>
 
-    <footer><span>HiddenGem Flow v2.1.1 · MIT · Open source — <span id="footCount"></span></span><a class="download-btn" href="https://github.com/BidyutRoy2/hiddengem-flow/releases" target="_blank" rel="noopener noreferrer" title="Download the latest HiddenGem Flow build from GitHub Releases"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Download HiddenGem Flow</a></footer>
+    <footer><span>HiddenGem Flow v3.0.0 · MIT · Open source — <span id="footCount"></span></span><a class="download-btn" href="https://github.com/BidyutRoy2/hiddengem-flow/releases" target="_blank" rel="noopener noreferrer" title="Download the latest HiddenGem Flow build from GitHub Releases"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Download HiddenGem Flow</a></footer>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

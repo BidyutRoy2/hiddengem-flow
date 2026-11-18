@@ -682,14 +682,199 @@ function readGeminiReplyText(parsed: unknown): AiReplyText {
 }
 
 /**
+ * Lexical mode of JS-ish text at a position, for the fence-extension
+ * decision in findFencedCode. Scans from `from` to `to` tracking
+ * strings (with escapes), template literals (with ${...} nesting),
+ * line/block comments, and regex literals (classic prev-token
+ * heuristic: a `/` after an operator, opener, keyword or start of
+ * code opens a regex; after an identifier, `)`, `]` or number it is
+ * division). Returns "code" when the position is in normal code.
+ * A closing fence found while the scan is inside a string, template
+ * or comment is NOT a real fence — it is ``` inside the code — so
+ * the caller extends to the next fence instead of truncating the
+ * draft (finding A-86). Limitations, documented not hidden: a `)`
+ * before a regex is read as division (standard heuristic limit), and
+ * a template literal is treated as opaque outside ${...}, so exotic
+ * nesting can misjudge — the draft preview still shows the result
+ * before anything is saved. Pure.
+ */
+type ScanMode = "code" | "sq" | "dq" | "tpl" | "line" | "block";
+function scanModeAt(text: string, from: number, to: number): ScanMode {
+  type Frame = { mode: ScanMode; tplExpr: boolean; depth: number };
+  const stack: Frame[] = [{ mode: "code", tplExpr: false, depth: 0 }];
+  const top = (): Frame => stack[stack.length - 1] as Frame;
+  let prevSig = "";
+  let prevWord = "";
+  const isRegexStart = (): boolean => {
+    if (prevSig === "") return true;
+    if ("(,=:[!&|?{};".includes(prevSig)) return true;
+    return ["return", "typeof", "case", "delete", "void", "in", "of", "new", "instanceof", "else", "do", "yield", "await"].includes(prevWord);
+  };
+  let i = from;
+  while (i < to) {
+    const ch = text[i];
+    const frame = top();
+    if (frame.mode === "line") {
+      if (ch === "\n") stack.pop();
+      i++;
+      continue;
+    }
+    if (frame.mode === "block") {
+      if (ch === "*" && text[i + 1] === "/") {
+        stack.pop();
+        i += 2;
+        continue;
+      }
+      i++;
+      continue;
+    }
+    if (frame.mode === "sq" || frame.mode === "dq") {
+      const q = frame.mode === "sq" ? "'" : '"';
+      if (ch === "\\") {
+        i += 2;
+        continue;
+      }
+      if (ch === q) {
+        stack.pop();
+        i++;
+        continue;
+      }
+      if (ch === "\n") {
+        stack.pop(); // unterminated string: error recovery, do not poison the rest
+        i++;
+        continue;
+      }
+      i++;
+      continue;
+    }
+    if (frame.mode === "tpl") {
+      if (ch === "\\") {
+        i += 2;
+        continue;
+      }
+      if (ch === "`") {
+        stack.pop();
+        i++;
+        continue;
+      }
+      if (ch === "$" && text[i + 1] === "{") {
+        stack.push({ mode: "code", tplExpr: true, depth: 0 });
+        prevSig = "{";
+        prevWord = "";
+        i += 2;
+        continue;
+      }
+      i++;
+      continue;
+    }
+    // Code mode (top frame is code, maybe a ${...} expression).
+    if (ch === "/" && text[i + 1] === "/") {
+      stack.push({ mode: "line", tplExpr: false, depth: 0 });
+      i += 2;
+      continue;
+    }
+    if (ch === "/" && text[i + 1] === "*") {
+      stack.push({ mode: "block", tplExpr: false, depth: 0 });
+      i += 2;
+      continue;
+    }
+    if (ch === "'" || ch === '"') {
+      stack.push({ mode: ch === "'" ? "sq" : "dq", tplExpr: false, depth: 0 });
+      i++;
+      continue;
+    }
+    if (ch === "`") {
+      stack.push({ mode: "tpl", tplExpr: false, depth: 0 });
+      i++;
+      continue;
+    }
+    if (ch === "/") {
+      if (isRegexStart()) {
+        let j = i + 1;
+        let ok = false;
+        let inClass = false;
+        while (j < to) {
+          const c = text[j];
+          if (c === "\\") {
+            j += 2;
+            continue;
+          }
+          if (c === "\n") break;
+          if (c === "[") inClass = true;
+          else if (c === "]") inClass = false;
+          else if (c === "/" && !inClass) {
+            ok = true;
+            break;
+          }
+          j++;
+        }
+        if (ok) {
+          j++;
+          while (j < to && /[a-z]/i.test(text[j])) j++;
+          i = j;
+          prevSig = "/";
+          prevWord = "";
+          continue;
+        }
+        // Not a regex (no closing / before the fence): division.
+      }
+      prevSig = "/";
+      prevWord = "";
+      i++;
+      continue;
+    }
+    if (ch === "{") {
+      if (frame.tplExpr) frame.depth++;
+      prevSig = "{";
+      prevWord = "";
+      i++;
+      continue;
+    }
+    if (ch === "}") {
+      if (frame.tplExpr) {
+        if (frame.depth === 0) {
+          stack.pop();
+          prevSig = "}";
+          prevWord = "";
+          i++;
+          continue;
+        }
+        frame.depth--;
+      }
+      prevSig = "}";
+      prevWord = "";
+      i++;
+      continue;
+    }
+    if (/[A-Za-z_$]/.test(ch)) {
+      let j = i;
+      while (j < to && /[A-Za-z0-9_$]/.test(text[j])) j++;
+      prevWord = text.slice(i, j);
+      prevSig = text[j - 1];
+      i = j;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      i++;
+      continue;
+    }
+    prevSig = ch;
+    prevWord = "";
+    i++;
+  }
+  return top().mode;
+}
+
+/**
  * Find the first fenced code block in reply text and return its body.
  * Preference: a ```javascript / ```js fence, then a fence whose body
  * holds a ==UserScript== header, then any fence whose body looks like
  * JavaScript (function/const/let/var/arrow/document/GM_ …). Prose
- * before and after the fence is ignored. A fence whose body opens a
- * ==UserScript== header but never closes it was cut short by a ```
- * inside a string literal, so the scan extends to the next closing
- * fence. Returns null when no fence yields usable code. Pure.
+ * before and after the fence is ignored. A fence whose body looks cut
+ * short — an unclosed ==UserScript== header, or a closing fence that
+ * falls inside a string/template/comment (scanModeAt) — is extended
+ * to the next fence: a ``` inside the code is not a real fence
+ * (finding A-86). Returns null when no fence yields usable code. Pure.
  */
 function findFencedCode(text: string): string | null {
   const openRe = /```([A-Za-z0-9_-]*)[ \t]*\r?\n/g;
@@ -701,7 +886,16 @@ function findFencedCode(text: string): string | null {
     let close = text.indexOf("```", bodyStart);
     if (close === -1) break;
     let body = text.slice(bodyStart, close);
-    while (body.includes("// ==UserScript==") && !body.includes("// ==/UserScript==")) {
+    // Extend while the body looks cut short: an unclosed ==UserScript==
+    // header (the pre-v2.1.1 rule), or a closing fence that falls
+    // inside a string/template/comment — a ``` inside the code, not a
+    // real fence (finding A-86: a ``` inside a string literal AFTER
+    // the header closed used to truncate the draft here). Each pass
+    // moves `close` forward, so the loop always terminates.
+    while (
+      (body.includes("// ==UserScript==") && !body.includes("// ==/UserScript==")) ||
+      scanModeAt(text, bodyStart, close) !== "code"
+    ) {
       const next = text.indexOf("```", close + 3);
       if (next === -1) break;
       body = text.slice(bodyStart, next);

@@ -25,7 +25,7 @@
 1. Open `chrome://extensions` (or `brave://extensions`) → turn on **Developer mode**.
 2. Click **Load unpacked** and select the extracted folder.
 
-That's it — the floating window and dashboard are ready. Two grants are still needed before any userscript runs (see [Install](#install-load-unpacked)): turn **Allow User Scripts** ON in the extension's Details page, then **Grant site access** for each script's site. This is the **public build of v2.1.1** — v2.1.0 plus a fix for Script Studio Generate dropping chatty LLM replies (tolerant draft extraction + diagnosable errors + 4000-token cap). The owner-only **Script Studio** (Dashboard tab: generate scripts with the cloud LLM or local templates, test a draft once on its real site without installing it, and publish to the Official Store) ships only in a separate **owner build**, which is not published here. The Later tab's AI authoring section is removed entirely (its contents moved into the Studio).
+That's it — the floating window and dashboard are ready. Two grants are still needed before any userscript runs (see [Install](#install-load-unpacked)): turn **Allow User Scripts** ON in the extension's Details page, then **Grant site access** for each script's site. This is v2.1.1, published as a pre-release (see [Status](#status)).
 
 ### Watch: install in 60 seconds
 
@@ -53,7 +53,7 @@ GitHub READMEs can't embed an mp4 player, so the preview above plays as a GIF �
 
 **5. HiddenGem Flow appears in the extensions list**
 
-<img src="docs/install-guide/05-extension-loaded.png" width="700" alt="HiddenGem Flow 1.0.0 listed in chrome://extensions">
+<img src="docs/install-guide/05-extension-loaded.png" width="700" alt="HiddenGem Flow listed in chrome://extensions (version 2.1.2 shown)">
 
 **6. Open Details and turn Allow User Scripts ON**
 
@@ -79,21 +79,20 @@ Screenshots are from the live test in real Chrome — see [`docs/LIVE_TEST_AUDIT
 - **Works with no website open** — on a new tab, `chrome://` or `about:blank` the same floating UI opens as a small standalone popup window (360×680). Clicking again focuses it instead of opening a duplicate.
 - **Daily Tasks** — save sites by name + URL, open one, several, or **Open All**. Tabs open one by one (~350 ms apart, max 50 at a time) and the result is reported honestly — *"Opened 3 tabs."* — never silently dropped. Only the first tab opens in the foreground; the rest open in the background. Pin, edit, delete, search. Duplicate URLs are rejected. **Export tasks (.json)** downloads all of them to one JSON file (`hiddengem-flow-tasks-YYYY-MM-DD.json`, pinned first, then newest); **Import tasks (.json)** reads such a file back and merges it — a URL already saved is skipped, nothing is ever deleted, and one line reports the counts ("Imported 5 tasks. 1 skipped — already saved."). A file that is not a tasks backup is refused with a clear error and nothing changes.
 - **Script Manager** — create, import, run, back up, delete and upgrade userscripts. Every install is scanned first (score 0–100, grade A–F) and needs your explicit **Confirm** — the scan warns, it never blocks. Version history keeps the last 10 versions with a Rollback button. Import from `.js`, `.user.js`, `.txt` or any text file, pasted code, or a URL you fetch yourself. Export any script as `.user.js` or `.txt`.
-- **Script Store** — the official store lives in the public repo [`BidyutRoy2/hiddengem-flow-store`](https://github.com/BidyutRoy2/hiddengem-flow-store) and is fetched through raw.githubusercontent first, jsDelivr as a fallback. Search, sort by Recently updated / Latest / Name, and install any script only after a scan + your confirm. Nothing installs itself, nothing is fetched until you click **Load store**. The store currently lists 4 scripts: Titan Exchange Auto Trader Pro v2.0, Universal DOM Diagnostic v2.0.0, 9Chain Virtual Node Auto v2.0.0, and Firstprint Daily Streak Auto-Claim v1.0.2.
+- **Script Store** — the official store lives in the public repo [`BidyutRoy2/hiddengem-flow-store`](https://github.com/BidyutRoy2/hiddengem-flow-store) and is fetched through raw.githubusercontent first, jsDelivr as a fallback. Search, sort by Recently updated / Latest / Name, and install any script only after a scan + your confirm. Nothing installs itself, nothing is fetched until you click **Load store**. The store currently lists 4 scripts: Titan Exchange Auto Trader Pro by HiddenGem v2.0, Universal DOM Diagnostic v2.0 — TM Only v2.0.0, 9Chain Virtual Node Auto v2.0.0, and Firstprint Daily Streak Auto-Claim v1.0.2.
 - **Smart Notification Bridge** — if the site you're on already has an official script, a dismissible banner says so and offers it in one click from the Script Store.
 - **Multi-tab Logs** — every tab the extension opens gets a run entry (Queued → Running → Done) with the scripts that match it, and **Stop All** closes only the tabs this extension opened.
 - **Notepad** — quick local notes in the floating window and in the Dashboard, the same notes in both. Search as you type; brand each note (HiddenGem / Personal / Work); add up to 10 tags; pin to the top; copy the note body; edit, or delete with a two-step confirm. Notes support Markdown, checklists and due dates. Notes live in this browser only — no server, no sync. Empty title falls back to the first line of the note, or “Untitled note”.
 - **Edit layout** — the floating window's **✎ Edit layout** link opens a panel where you drag ⋮⋮ to reorder the pages, tap the eye to hide or show a page, and tap the star to pick the page that opens first. Save applies it at once; Cancel discards it. A hidden page is unreachable from the tab bar until you restore it from Edit layout. The layout is saved in this browser only and applies to the floating window, Side Panel and Popup; the Dashboard always shows all tabs.
-- **Three window modes** — Floating window, native Side Panel, or a standalone Popup window: one switch from the toolbar icon, Alt+Shift+F, the Dashboard, or each surface's ⇄ Switch menu. Default is Floating.
+- **Three window modes** — Floating window, native Side Panel, or a standalone Popup window: switch from the Dashboard or each surface's ⇄ Switch menu; the toolbar icon / Alt+Shift+F toggles the current mode. Default is Floating.
 - **Automatic backup** — the last 3 snapshots are kept automatically; restore from a snapshot, or export / import a backup file. Backups never contain tokens or API keys.
 - **Open-tabs tracking** — a task with an open tab shows a green ● Open badge (×N when several) + a red ✕ Close button on its row, in the floating window, Side Panel, Popup and Dashboard. The badge focuses the tab; Close closes exactly those tabs. Session-only, host-level.
-- **Context menus & shortcuts** — right-click to save a site to Daily Tasks, save a selection as a note, or run a script on the page. Alt+Shift+F toggles the window, Alt+Shift+T adds the current site as a task, Alt+Shift+D opens the Dashboard, Alt+Shift+N opens a quick note.
+- **Context menus & shortcuts** — right-click to save a site to Daily Tasks, save a selection as a note, or run a script on the page. Alt+Shift+F toggles the window, Alt+Shift+T adds the current site as a task, Alt+Shift+D opens the Dashboard, Alt+Shift+N opens a quick note (on some platforms Alt+Shift+T / Alt+Shift+N need a one-time assignment at chrome://extensions/shortcuts).
 - **Script editor, folders & install from URL** — edit scripts in the built-in editor, organise them in folders with tags and bulk actions, archive the ones you don't use, and install a script straight from its URL after a scan + your confirm.
 - **Flows & reminders** — a Flow runs a routine (tasks + scripts + note) in one click or on a schedule; a task reminder opens its sites at the time you set.
 - **Omnibox** — type `flow` + a task name in the address bar to open it.
 - **Sessions, Smart Open All, userstyles, scratchpad, dossier, collections, storage viewer, snooze** — save a set of open tabs as a session; Smart Open All skips sites already open; per-site custom CSS; a scratchpad for throwaway code; a per-site dossier; store collections; see what a script stored; snooze a task out of Open All for a while.
 - **Later** — scheduled scripts (per-script opt-in, with a run log) and opt-in sync to your own WebDAV / Gist / Drive (default OFF, tokens never in backups).
-- **Script Studio (owner build only)** — generate a script from a website link + a task, test the draft once on its real site without installing it, fix it with the AI or by hand, and publish it to the Official Store. Not in the public build.
 
 ## Publish scripts with the private Store Uploader
 
@@ -105,7 +104,7 @@ Screenshots are from the live test in real Chrome — see [`docs/LIVE_TEST_AUDIT
 - **Live Scripts** — lists every published script (total count + search) and upgrades any of them; the version field suggests a bump (1.0.0 → 1.0.1) and **Publish upgrade** uploads the new file and updates the index entry. Each card also has a **Delete** button (two clicks: arm, then confirm) — it removes the entry from `index.json` first, then deletes the file from `scripts/`, and purges both from jsDelivr; deleting needs a token, and it only stops the store listing the script (anyone who already installed it keeps their local copy).
 - No token? **Download .user.js** / **Download index.json** / **Copy index.json entry** still work — upload the two files on github.com by hand.
 
-After a publish, open the Script Store tab and click **Load store** — the new script is listed. The owner build can also publish from the Script Studio tab inside the extension.
+After a publish, open the Script Store tab and click **Load store** — the new script is listed.
 
 ## Install (Load Unpacked)
 
@@ -125,12 +124,13 @@ Two grants are needed before any userscript runs. Both are yours to give — no 
 
 ## Updates (unpacked installs never auto-update)
 
-Chrome never updates an unpacked extension by itself — there is no self-update API and no extension can replace its own files. So HiddenGem Flow **notices** a newer build instead of installing one: it checks the public GitHub releases page at most once every 6 hours (on startup and when the dashboard opens), plus whenever you click **Check for updates** in Settings. When a newer build exists, the **Overview tab shows a banner** with the release tag and the manual steps — download the new build from the release page, replace the files in your unpacked extension folder, then press **Reload** in `chrome://extensions`. **Do not remove the extension** — removing deletes your saved tasks and scripts. The floating window shows one compact line ("Update available: <tag> — open the Dashboard to download it."); the banner can be dismissed per release (a newer build shows it again). No desktop notification, no data sent — the check is a plain, unauthenticated listing request to `api.github.com` for the public releases. Real auto-update will come with the Chrome Web Store release (not yet published). One honest quirk: the check compares the build's date against the release asset's upload time, so a fresh install of a just-uploaded build may briefly report an update available pointing at itself — Dismiss hides it until the next build.
+Chrome never updates an unpacked extension by itself — there is no self-update API and no extension can replace its own files. So HiddenGem Flow **notices** a newer build instead of installing one: it checks the public GitHub releases page at most once every 6 hours (on startup and when the dashboard opens), plus whenever you click **Check for updates** in Settings. When a newer build exists, the **Overview tab shows a banner** with the release tag and the manual steps — download the new build from the release page, replace the files in your unpacked extension folder, then press **Reload** in `chrome://extensions`. **Do not remove the extension** — removing deletes your saved tasks and scripts. The floating window shows one compact line ("Update available: <tag> — open the Dashboard to download it."); the banner can be dismissed per release (a newer build shows it again). No desktop notification, no data sent — the check is a plain, unauthenticated listing request to `api.github.com` for the public releases. Real auto-update will come with the Chrome Web Store release (not yet published). One honest quirk: the check compares the build's date against the release asset's upload time, so a fresh install of a just-uploaded build may briefly report an update available pointing at itself — Dismiss hides it until the next build. (Fixed in v2.1.2 — the first-check grace is now 24 hours, so a build published within a day of its build no longer reports an update pointing at itself.)
 
 ## Privacy
 
 - Everything you save — tasks, scripts, positions, logs — stays in `chrome.storage.local` on your machine.
-- Two automatic external requests exist: a best-effort favicon image (Google's s2 service) next to each task site (if it fails, a letter tile shows instead), and the update checker asking `api.github.com` for the latest public release at most once every 6 hours, plus on manual check (see Updates above).
+- Two requests happen automatically: a best-effort favicon image (Google's s2 service) next to each task site (if it fails, a letter tile shows instead), and the update checker asking `api.github.com` for the latest public release at most once every 6 hours, plus on manual check (see Updates above).
+- Two more sends exist, all user-triggered and opt-in: sync (the backup payload + token to your WebDAV server / Gist / Drive, only when you turn it on), and `GM_xmlhttpRequest` (a script's fetches to the hosts in its `@connect`, only with `@grant GM_xmlhttpRequest`).
 - The store is fetched only when you click **Load store**. Importing from a URL fetches only that URL, when you click it.
 - No account, no analytics, no telemetry.
 
@@ -143,7 +143,7 @@ Chrome never updates an unpacked extension by itself — there is no self-update
 | `scripting` | Inject the floating window into the tab on click. |
 | `activeTab` | Temporary access to the tab you clicked — this is what lets the extension ask for **no host permissions at all**. |
 | `userScripts` | Register / unregister userscripts. Chrome additionally needs the **Allow User Scripts** toggle (see Install). |
-| `notifications` | Only for `GM_notification` from a running userscript. |
+| `notifications` | `GM_notification` from a running userscript, plus reminders / scheduled Open All / note due dates / menu & shortcut confirmations. |
 | `sidePanel` | Open the native Side Panel mode. |
 | `contextMenus` | Right-click: save a site, save a selection as a note, run a script on the page. |
 | `alarms` | Reminders, scheduled Open All, scheduled scripts. |
@@ -159,7 +159,6 @@ There is no `default_popup`, and no required host permission. Site access for us
 - The floating window cannot be *injected* on `chrome://`, Web Store, or other restricted pages — Chrome forbids it. Since v1.0.2 the click there opens the standalone popup instead.
 - A script with no `@match` patterns is saved but never registered.
 - The store lists 4 scripts (see [Script Store](#what-it-does) above). A script you installed stays yours even if it is later removed from the store.
-- **Script Studio is owner-only** and not in the public build. A generated draft is only a draft until you test it on its real site.
 
 ## Develop
 
@@ -179,23 +178,23 @@ entrypoints/
   background.ts            # toolbar click, floating toggle, open-urls, script bridge, run log, popup routing
   floating.ts              # in-page floating window (Shadow DOM, drag, tabs, bridge banner)
   sidepanel/               # native Side Panel surface
-  float/                   # standalone floating page for new-tab pages
-  shared/                  # tasks, scripts, engine (userScripts + GM shim), store, runs, notes, flows, reminders, editor, folders, studio, store-publish, ai-author, updates, sync, schedules
-  dashboard/               # Overview, Daily Tasks, Scripts, Script Store, Notepad, Logs, Settings, Later (+ Script Studio in the owner build)
+  float/                   # standalone floating page for pages where injection is forbidden
+  shared/                  # tasks, scripts, engine (userScripts + GM shim), store, runs, notes, flows, reminders, editor, folders, updates, sync, schedules
+  dashboard/               # Overview, Daily Tasks, Scripts, Script Store, Notepad, Flows, Sessions, Styles, Dossier, Later, Logs, Settings
 tools/
   store-uploader.html      # private script publisher (single file, no server)
-public/                    # icons + wordmark used by the built extension
+public/                    # icons + wordmark, gm-relay.js / style-injector.js used by the built extension
 assets/                    # source artwork
 docs/                      # audit, live-test audit, live-test screenshots
 ```
 
 ## Status
 
-**v2.1.1 — Published as a public pre-release.** The public build is live at [`v2.1.1-dev-20261118`](https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v2.1.1-dev-20261118) — v2.1.0 plus the Script Studio Generate fix (tolerant draft extraction for chatty LLM replies, diagnosable errors, 4000-token cap). The owner build (with Script Studio) is not published. Live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`).
+**v2.1.1 — Published as a pre-release.** The build is live at [`v2.1.1-dev-20261118`](https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v2.1.1-dev-20261118). Live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`).
 
-**v2.0.3 — New-tab override removed.** The v1.5+ opt-in new-tab dashboard is gone: the `chrome_url_overrides` key is removed from the manifest, the new-tab page is deleted, and the Dashboard Settings card is removed — new tabs are the browser's default again. The dashboard is reached from the toolbar icon, Alt+Shift+D, or Open Dashboard. Everything else is unchanged from v2.0.2 (multi-provider cloud LLM + model auto-detection, Side Panel, backup, Flows, open-tabs tracking). A v2.0.2 backup still restores — its `newtab` key is simply ignored. Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); superseded by v2.1.1, never released on its own.
+**v2.0.3 — New-tab override removed.** The v1.5+ opt-in new-tab dashboard is gone: the `chrome_url_overrides` key is removed from the manifest, the new-tab page is deleted, and the Dashboard Settings card is removed — new tabs are the browser's default again. The dashboard is reached from the toolbar icon, Alt+Shift+D, or Open Dashboard. Everything else is unchanged from v2.0.2 (Side Panel, backup, Flows, open-tabs tracking). A v2.0.2 backup still restores — its `newtab` key is simply ignored. Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); superseded by v2.1.1, never released on its own.
 
-**v2.0.0 — All remaining phases in one build.** Script-manager core (built-in editor, folders/tags/bulk/archive, install from URL, Allow User Scripts onboarding, GM_xmlhttpRequest + GM_setClipboard); routines (Flows, task reminders + scheduled Open All, Notes upgrade with Markdown/checklists/due dates, omnibox `flow` keyword); surfaces & depth (opt-in new-tab dashboard, sessions/workspaces, Smart Open All, per-site userstyles, scratchpad, site dossier, store collections, per-script storage viewer, local-file export, snooze queue); Later (scheduled scripts with per-script opt-in + run log, opt-in sync to the user's own WebDAV/Gist/Drive, AI authoring from local templates with BYOK cloud LLM opt-in). Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); superseded by v2.1.1, never released on its own.
+**v2.0.0 — All remaining phases in one build.** Script-manager core (built-in editor, folders/tags/bulk/archive, install from URL, Allow User Scripts onboarding, GM_xmlhttpRequest + GM_setClipboard); routines (Flows, task reminders + scheduled Open All, Notes upgrade with Markdown/checklists/due dates, omnibox `flow` keyword); surfaces & depth (opt-in new-tab dashboard, sessions/workspaces, Smart Open All, per-site userstyles, scratchpad, site dossier, store collections, per-script storage viewer, local-file export, snooze queue); Later (scheduled scripts with per-script opt-in + run log, opt-in sync to the user's own WebDAV/Gist/Drive). Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); superseded by v2.1.1, never released on its own.
 
 **v1.2.1 — Open-tabs tracking on all four surfaces.** A task with an open tab shows a green ● Open badge (×N when several) + a red ✕ Close button on its row — in the floating window, Side Panel, Popup and Dashboard; the badge focuses the tab, Close closes exactly those tabs, and the badge is host-level (navigating to a different site drops it). Session-only, no new permissions. Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); superseded by v2.1.1, never released on its own. v1.2.0 was Side Panel + automatic backup + right-click menu + keyboard shortcuts + 3-way window mode; v1.1.0 was tabs, working Notepad and Edit layout; v1.0.0 was the final first version. Firefox comes later, after Chrome is proven.
 

@@ -79,7 +79,7 @@ export function pickReleaseAssetUpdatedAt(assets: unknown, variant: HGFVariant):
   return legacy;
 }
 /** Pre-release page — the distribution channel for unpacked builds. */
-export const RELEASE_PAGE_URL = "https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v1.1.0-dev-20261115";
+export const RELEASE_PAGE_URL = "https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v2.1.1-dev-20261118";
 
 /** The releases list page — always live, newest build on top. The footer
  *  Download button points here (not at one tag), so it works before a new
@@ -90,14 +90,23 @@ export const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
 export const RETRY_AFTER_MS = 60 * 60 * 1000; // 1 hour after a failed check
 
 /**
- * First-check grace window: 2 hours. See isNewerOnFirstCheck — the
- * release asset's `updated_at` is its UPLOAD time, always a few
- * minutes after BUILD_DATE, so without this window every fresh
- * install would report an update available pointing at ITSELF.
- * Upload lag is minutes; a genuinely older build is hours or days
- * older than the asset it compares against, so 2h separates the two.
+ * First-check grace window: 24 hours. See isNewerOnFirstCheck — the
+ * release asset's `updated_at` is its UPLOAD time, always AFTER
+ * BUILD_DATE, so without this window every fresh install would
+ * report an update available pointing at ITSELF. Upload lag is NOT
+ * minutes in practice: v2.1.1 was built 2026-11-17T21:55:06Z and its
+ * asset was uploaded 2026-11-18T00:17:02Z — 2h 22m later, just
+ * outside the old 2h window, so the shipped v2.1.1 reported an
+ * update pointing at itself on every fresh install (finding A-89).
+ * The publish workflow (live test → owner approval → source push →
+ * release) spans hours, so the grace must cover a full day. The
+ * cost: a same-tag asset re-upload within 24h of BUILD_DATE is
+ * missed on a FIRST check — but a rebuild always gets a new version
+ * (semver signal, ungraced), and isNewerThanStored still catches a
+ * replaced asset on later checks. A genuinely older build is days
+ * older than the asset, so 24h still separates the two.
  */
-export const FIRST_CHECK_GRACE_MS = 2 * 60 * 60 * 1000;
+export const FIRST_CHECK_GRACE_MS = 24 * 60 * 60 * 1000;
 
 /**
  * When THIS build was made (ISO date-time, UTC). UPDATE THIS ON EVERY
@@ -112,9 +121,10 @@ export const FIRST_CHECK_GRACE_MS = 2 * 60 * 60 * 1000;
  * few minutes LATER than BUILD_DATE. Before the fix, a fresh install
  * of this very build reported an update available pointing at itself
  * (permanently for fresh profiles, not briefly). The first check now
- * uses the 2h grace window in isNewerOnFirstCheck: an asset updated
- * within 2h of BUILD_DATE is the normal upload lag and counts as up
- * to date; only a bigger gap counts as a genuinely older build.
+ * uses the grace window in isNewerOnFirstCheck: an asset updated
+ * within 24h of BUILD_DATE is the normal upload lag (v2.1.1's lag
+ * was 2h 22m — finding A-89) and counts as up to date; only a
+ * bigger gap counts as a genuinely older build.
  * The same upload-lag trap hit LATER checks too, in the other
  * direction: comparing the asset's updated_at against BUILD_DATE on
  * a later check is always true for the installed build, so the
@@ -131,11 +141,11 @@ export const FIRST_CHECK_GRACE_MS = 2 * 60 * 60 * 1000;
  * window. BUILD_DATE is therefore a first-check AND a later-check
  * input, never the sole later-check input.
  */
-export const BUILD_DATE = "2026-11-17T21:55:06Z";
+export const BUILD_DATE = "2026-11-18T09:16:30Z";
 
 /** What a check found, as stored in chrome.storage.local. */
 export interface UpdateRecord {
-  /** Release tag, e.g. "v1.1.0-dev-20261115". "" when no release exists yet. */
+  /** Release tag, e.g. "v2.1.1-dev-20261118". "" when no release exists yet. */
   tag: string;
   /** Release published_at (ISO). "" when unknown. */
   publishedAt: string;
@@ -268,15 +278,16 @@ export function isNewerRelease(release: ReleaseInfo, buildDate: string, manifest
 /**
  * Is this release newer than the running build, on the FIRST check
  * ever (no release stored yet — see checkForUpdates)? Same two
- * signals as isNewerRelease, but the timestamp signal gets the 2h
- * grace window: an asset updated at most 2h after BUILD_DATE is the
- * normal upload lag (the asset is uploaded minutes after the build
- * is made), so it counts as up to date and the release is stored as
- * seen. Only a gap over 2h counts as a genuinely older build (e.g.
- * installed from an old chat zip, days after the build). The semver
- * signal is NOT graced — a later tag is unambiguous evidence of a
- * newer release whatever the timestamps say. Unparseable timestamps
- * fall back to the plain rule.
+ * signals as isNewerRelease, but the timestamp signal gets the 24h
+ * grace window: an asset updated at most 24h after BUILD_DATE is the
+ * normal upload lag (the asset is uploaded hours after the build
+ * is made — v2.1.1's lag was 2h 22m, finding A-89), so it counts as
+ * up to date and the release is stored as seen. Only a gap over 24h
+ * counts as a genuinely older build (e.g. installed from an old
+ * chat zip, days after the build). The semver signal is NOT
+ * graced — a later tag is unambiguous evidence of a newer release
+ * whatever the timestamps say. Unparseable timestamps fall back to
+ * the plain rule.
  */
 export function isNewerOnFirstCheck(release: ReleaseInfo, buildDate: string, manifestVersion: string): boolean {
   if (manifestVersion && compareBuildVersions(release.tag, manifestVersion) > 0) return true;
@@ -432,12 +443,12 @@ function manifestVersion(): string {
  * banner or an error message beyond the manual-check status line.
  *
  * Later checks use BOTH rules, OR-ed (see the branch below): the
- * first-check rule against BUILD_DATE (with its 2h grace) preserves
+ * first-check rule against BUILD_DATE (with its 24h grace) preserves
  * the verdict about the INSTALLED build — an old build keeps
  * reporting available, and after the user upgrades the verdict
  * clears because BUILD_DATE moved past the asset. The stored rule
  * (isNewerThanStored) catches what the grace window would hide: a
- * replaced asset under the same tag, published within 2h of the
+ * replaced asset under the same tag, published within 24h of the
  * build. Either rule alone is wrong: BUILD_DATE alone makes every
  * later check self-point (A-06 second bug), and the stored rule
  * alone forgets an old build's verdict the moment a second check
@@ -496,14 +507,14 @@ export async function checkForUpdates(force = false): Promise<UpdateCheckResult>
     return { ok: true, available: false, record, checked: true };
   }
   // First check ever (no release stored yet — a failed check or an
-  // empty release list leaves tag ""): the 2h grace window applies.
+  // empty release list leaves tag ""): the 24h grace window applies.
   // Later checks use BOTH rules, OR-ed. The grace rule against
   // BUILD_DATE preserves the verdict about the INSTALLED build:
   // an old build keeps reporting available on every later check,
   // and after the user upgrades to a newer build the verdict clears
   // (BUILD_DATE moved past the asset). The stored rule
   // (isNewerThanStored) catches what the grace window would hide:
-  // a replaced asset under the same tag, published within 2h of the
+  // a replaced asset under the same tag, published within 24h of the
   // build. Either rule alone is wrong — BUILD_DATE alone makes every
   // later check self-point (A-06 second bug), and the stored rule
   // alone forgets an old build's verdict on the second check

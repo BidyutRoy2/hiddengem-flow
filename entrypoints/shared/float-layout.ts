@@ -20,6 +20,8 @@ export const FLOAT_TABS: Array<{ id: FloatTabId; label: string }> = [
 ];
 
 export const FLOAT_LAYOUT_KEY = "hiddengemflow.float.layout.v1";
+/** Saved drag position of the floating window (shared by the float and the dashboard's reset). */
+export const FLOAT_POS_KEY = "hiddengemflow.floating.pos";
 
 export interface FloatLayout {
   /** Tab order, first = leftmost in the tab bar. */

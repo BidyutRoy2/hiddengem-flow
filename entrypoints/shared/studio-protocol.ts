@@ -1,9 +1,10 @@
 // HiddenGem Flow — Studio test protocol: background ↔ dashboard (v2.1.0).
 //
-// This module is deliberately TINY and contains no Studio name string
-// strings: the background imports it (message types + test-run
-// sanitizers), and the background bundle must stay free of Studio
-// strings in the PUBLIC build. The Studio UI itself lives in
+// This module is deliberately TINY: the background imports it (message
+// types + test-run sanitizers). The background answers these messages
+// in BOTH builds by design — the messages carry no Studio UI and are
+// unreachable without the Studio tab, which only the OWNER build
+// ships (finding A-75, accepted). The Studio UI itself lives in
 // shared/studio.ts, which only the OWNER build imports.
 //
 // Message types:

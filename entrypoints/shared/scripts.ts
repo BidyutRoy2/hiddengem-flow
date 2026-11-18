@@ -403,7 +403,7 @@ export function securityScan(code: string, metadata?: ScriptMetadata | null): Sc
   n = countMatches(clean, /\bsessionStorage\b/g);
   if (n > 0) findings.push({ severity: "medium", rule: "sessionStorage", message: `Touches sessionStorage (${n}×) — page-visible storage for this tab.` });
 
-  // Unsupported GM_* calls (anything not in the supported four).
+  // Unsupported GM_* calls (anything not in the supported six).
   const gmCalls = new Set<string>();
   for (const m of clean.matchAll(/\b(GM_[A-Za-z]+)\s*\(/g)) gmCalls.add(m[1]);
   for (const fn of [...gmCalls].sort()) {

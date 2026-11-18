@@ -20,7 +20,7 @@ export default defineConfig({
     name: "HiddenGem Flow",
     description:
       "Draggable floating window + dashboard for your daily task websites and userscripts. Save sites, open them in one click, manage scripts from one place.",
-    // Version comes from package.json (2.1.1).
+    // Version comes from package.json (3.0.0).
     // v1.0.2 adds entrypoints/float (float.html) — a standalone popup
     // window for the floating UI on pages where content scripts cannot
     // be injected (new tab, chrome://, about:blank). It needs NO new

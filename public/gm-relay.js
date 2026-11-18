@@ -138,7 +138,7 @@
       } catch (e) {}
     } catch (e) {}
   }
-  // v2.1.0 — Studio Test step reporting: a test draft posts a signal
+  // Studio Test step reporting: a test draft posts a signal
   // node whose textContent is the JSON step ({step, status, detail}).
   // The relay forwards it to the background, which stores it under
   // the sender tab's id for the Studio to poll. The payload is

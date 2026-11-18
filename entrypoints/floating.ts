@@ -35,6 +35,7 @@ import { NOTES_KEY } from "./shared/notes";
 import { mountFloatNotes } from "./shared/notes-ui";
 import {
   FLOAT_LAYOUT_KEY,
+  FLOAT_POS_KEY as POS_KEY,
   effectiveDefaultTab,
   loadFloatLayout,
   type FloatLayout,
@@ -90,7 +91,6 @@ import {
 declare const chrome: any;
 
 const FLAG = "__hiddenGemFlowLoaded";
-const POS_KEY = "hiddengemflow.floating.pos";
 const WIDTH = 320;
 
 // LIVE TEST FIX (v1.0.1, bug #4): section refreshers + storage listener.
@@ -1060,7 +1060,7 @@ function buildWindow(): HTMLElement {
       <div class="layout-panel" data-layout-panel hidden></div>
       <a class="edit-layout" data-act="edit-layout">✎ Edit layout</a>
       <button type="button" class="dash">Open Dashboard</button>
-      <div class="foot">HiddenGem Flow v2.1.1<br><a class="download-btn" href="${RELEASES_PAGE_URL}" target="_blank" rel="noopener noreferrer" title="Download the latest HiddenGem Flow build">${DOWNLOAD_SVG} Download HiddenGem Flow</a><p class="backup-line" data-backup-line></p></div>
+      <div class="foot">HiddenGem Flow v3.0.0<br><a class="download-btn" href="${RELEASES_PAGE_URL}" target="_blank" rel="noopener noreferrer" title="Download the latest HiddenGem Flow build">${DOWNLOAD_SVG} Download HiddenGem Flow</a><p class="backup-line" data-backup-line></p></div>
     </div>
   `;
   shadow.appendChild(win);
