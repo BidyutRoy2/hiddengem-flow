@@ -20,12 +20,12 @@
 
 ## Download — ready to install
 
-**[⬇ Download the extension (pre-release v2.1.1-dev-20261118)](https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v2.1.1-dev-20261118)** — get `hiddengem-flow-v2.1.1-20261118.zip`, extract it, then:
+**[⬇ Download the extension (v3.0.0)](https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v3.0.0)** — get `hiddengem-flow-v3.0.0-20261118.zip`, extract it, then:
 
 1. Open `chrome://extensions` (or `brave://extensions`) → turn on **Developer mode**.
 2. Click **Load unpacked** and select the extracted folder.
 
-That's it — the floating window and dashboard are ready. Two grants are still needed before any userscript runs (see [Install](#install-load-unpacked)): turn **Allow User Scripts** ON in the extension's Details page, then **Grant site access** for each script's site. This is v2.1.1, published as a pre-release (see [Status](#status)).
+That's it — the floating window and dashboard are ready. Two grants are still needed before any userscript runs (see [Install](#install-load-unpacked)): turn **Allow User Scripts** ON in the extension's Details page, then **Grant site access** for each script's site. This is v3.0.0, published as a pre-release (see [Status](#status)).
 
 ### Watch: install in 60 seconds
 
@@ -190,7 +190,7 @@ docs/                      # audit, live-test audit, live-test screenshots
 
 ## Status
 
-**v3.0.0 — Final release (version 3.0.0).** The v2.1.3 build re-versioned as the final release — no code changes, same verification (smokes 1026/1026; live probes probe35 21/21, probe36 12/12; probe37-labels 16/16 inherited from v2.1.3). v2.1.2 and v2.1.3 were dev builds, superseded before delivery and never published. The v3.0.0 release is published separately — until it is live, the download above still points at the current live release (v2.1.1-dev-20261118). Live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`).
+**v3.0.0 — Final release (version 3.0.0).** The v2.1.3 build re-versioned as the final release — no code changes, same verification (smokes 1026/1026; live probes probe35 21/21, probe36 12/12; probe37-labels 16/16 inherited from v2.1.3). v2.1.2 and v2.1.3 were dev builds, superseded before delivery and never published. The v3.0.0 release is live at [`v3.0.0`](https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v3.0.0) — the download above points at it. Live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`).
 
 **v2.1.1 — Published as a pre-release.** The build is live at [`v2.1.1-dev-20261118`](https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v2.1.1-dev-20261118). Live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`).
 
