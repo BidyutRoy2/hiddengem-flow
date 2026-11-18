@@ -16,6 +16,8 @@
   No account. No tracking. Nothing runs until you say so.
 </p>
 
+Website: https://hiddengemflow.vercel.app/ — download the extension, browse the Script Store, and read the docs.
+
 ---
 
 ## Download — ready to install
