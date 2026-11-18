@@ -20,12 +20,12 @@
 
 ## Download — ready to install
 
-**[⬇ Download the extension (pre-release v1.1.0-dev-20261115)](https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v1.1.0-dev-20261115)** — get `hiddengem-flow-extension.zip`, extract it, then:
+**[⬇ Download the extension (pre-release v2.1.1-dev-20261118)](https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v2.1.1-dev-20261118)** — get `hiddengem-flow-v2.1.1-20261118.zip`, extract it, then:
 
 1. Open `chrome://extensions` (or `brave://extensions`) → turn on **Developer mode**.
 2. Click **Load unpacked** and select the extracted folder.
 
-That's it — the floating window and dashboard are ready. Two grants are still needed before any userscript runs (see [Install](#install-load-unpacked)): turn **Allow User Scripts** ON in the extension's Details page, then **Grant site access** for each script's site. This is a dev build of v2.1.1 — v2.1.0 plus a fix for Script Studio Generate dropping chatty LLM replies (tolerant draft extraction + diagnosable errors + 4000-token cap) — plus the owner-only **Script Studio** (Dashboard tab: generate scripts with the cloud LLM or local templates, test a draft once on its real site without installing it, and publish to the Official Store), shipped as **two builds** — an owner build with the Studio and a public build with no Studio code at all. The Later tab's AI authoring section is removed entirely (its contents moved into the Studio). The v2.1.1 build is not published yet — the download above is still the latest published pre-release (v1.1.0-dev-20261115) until the owner approves it after live testing.
+That's it — the floating window and dashboard are ready. Two grants are still needed before any userscript runs (see [Install](#install-load-unpacked)): turn **Allow User Scripts** ON in the extension's Details page, then **Grant site access** for each script's site. This is the **public build of v2.1.1** — v2.1.0 plus a fix for Script Studio Generate dropping chatty LLM replies (tolerant draft extraction + diagnosable errors + 4000-token cap). The owner-only **Script Studio** (Dashboard tab: generate scripts with the cloud LLM or local templates, test a draft once on its real site without installing it, and publish to the Official Store) ships only in a separate **owner build**, which is not published here. The Later tab's AI authoring section is removed entirely (its contents moved into the Studio).
 
 ### Watch: install in 60 seconds
 
@@ -71,7 +71,7 @@ GitHub READMEs can't embed an mp4 player, so the preview above plays as a GIF �
 | **Script Store** | **Standalone popup — new tab, no website open** |
 | <img src="docs/live-test/36-store-empty.png" width="420" alt="Script Store tab"> | <img src="docs/live-test/20-float-popup-newtab.png" width="180" alt="Standalone floating popup on a new tab"> |
 
-Screenshots are from the live test in real Chrome — see [`docs/LIVE_TEST_AUDIT.md`](docs/LIVE_TEST_AUDIT.md). The Script Store shot shows the honest empty state: the public store is empty until the first script is published there.
+Screenshots are from the live test in real Chrome — see [`docs/LIVE_TEST_AUDIT.md`](docs/LIVE_TEST_AUDIT.md). The Script Store shot is from the first live test, when the store was still empty — the store now lists 4 scripts (see [Script Store](#what-it-does) below).
 
 ## What it does
 
@@ -79,11 +79,21 @@ Screenshots are from the live test in real Chrome — see [`docs/LIVE_TEST_AUDIT
 - **Works with no website open** — on a new tab, `chrome://` or `about:blank` the same floating UI opens as a small standalone popup window (360×680). Clicking again focuses it instead of opening a duplicate.
 - **Daily Tasks** — save sites by name + URL, open one, several, or **Open All**. Tabs open one by one (~350 ms apart, max 50 at a time) and the result is reported honestly — *"Opened 3 tabs."* — never silently dropped. Only the first tab opens in the foreground; the rest open in the background. Pin, edit, delete, search. Duplicate URLs are rejected. **Export tasks (.json)** downloads all of them to one JSON file (`hiddengem-flow-tasks-YYYY-MM-DD.json`, pinned first, then newest); **Import tasks (.json)** reads such a file back and merges it — a URL already saved is skipped, nothing is ever deleted, and one line reports the counts ("Imported 5 tasks. 1 skipped — already saved."). A file that is not a tasks backup is refused with a clear error and nothing changes.
 - **Script Manager** — create, import, run, back up, delete and upgrade userscripts. Every install is scanned first (score 0–100, grade A–F) and needs your explicit **Confirm** — the scan warns, it never blocks. Version history keeps the last 10 versions with a Rollback button. Import from `.js`, `.user.js`, `.txt` or any text file, pasted code, or a URL you fetch yourself. Export any script as `.user.js` or `.txt`.
-- **Script Store** — the official store lives in the public repo [`BidyutRoy2/hiddengem-flow-store`](https://github.com/BidyutRoy2/hiddengem-flow-store) and is fetched through raw.githubusercontent first, jsDelivr as a fallback. Search, sort by Recently updated / Latest / Name, and install any script only after a scan + your confirm. Nothing installs itself, nothing is fetched until you click **Load store**.
+- **Script Store** — the official store lives in the public repo [`BidyutRoy2/hiddengem-flow-store`](https://github.com/BidyutRoy2/hiddengem-flow-store) and is fetched through raw.githubusercontent first, jsDelivr as a fallback. Search, sort by Recently updated / Latest / Name, and install any script only after a scan + your confirm. Nothing installs itself, nothing is fetched until you click **Load store**. The store currently lists 4 scripts: Titan Exchange Auto Trader Pro v2.0, Universal DOM Diagnostic v2.0.0, 9Chain Virtual Node Auto v2.0.0, and Firstprint Daily Streak Auto-Claim v1.0.2.
 - **Smart Notification Bridge** — if the site you're on already has an official script, a dismissible banner says so and offers it in one click from the Script Store.
 - **Multi-tab Logs** — every tab the extension opens gets a run entry (Queued → Running → Done) with the scripts that match it, and **Stop All** closes only the tabs this extension opened.
-- **Notepad** — quick local notes in the floating window and in a 7th Dashboard tab, the same notes in both. Search as you type; brand each note (HiddenGem / Personal / Work); add up to 10 tags; pin to the top; copy the note as “title\nbody”; edit, or delete with a two-step confirm. Notes live in this browser only — no server, no sync. Empty title falls back to the first line of the note, or “Untitled note”.
-- **Edit layout** — the floating window's **✎ Edit layout** link opens a panel where you drag ⋮⋮ to reorder the pages, tap the eye to hide or show a page, and tap the star to pick the page that opens first. Save applies it at once; Cancel discards it. A hidden page is unreachable from the tab bar until you restore it from Edit layout. The layout is saved in this browser only and applies to both floating windows; the Dashboard always shows all 7 tabs.
+- **Notepad** — quick local notes in the floating window and in the Dashboard, the same notes in both. Search as you type; brand each note (HiddenGem / Personal / Work); add up to 10 tags; pin to the top; copy the note body; edit, or delete with a two-step confirm. Notes support Markdown, checklists and due dates. Notes live in this browser only — no server, no sync. Empty title falls back to the first line of the note, or “Untitled note”.
+- **Edit layout** — the floating window's **✎ Edit layout** link opens a panel where you drag ⋮⋮ to reorder the pages, tap the eye to hide or show a page, and tap the star to pick the page that opens first. Save applies it at once; Cancel discards it. A hidden page is unreachable from the tab bar until you restore it from Edit layout. The layout is saved in this browser only and applies to the floating window, Side Panel and Popup; the Dashboard always shows all tabs.
+- **Three window modes** — Floating window, native Side Panel, or a standalone Popup window: one switch from the toolbar icon, Alt+Shift+F, the Dashboard, or each surface's ⇄ Switch menu. Default is Floating.
+- **Automatic backup** — the last 3 snapshots are kept automatically; restore from a snapshot, or export / import a backup file. Backups never contain tokens or API keys.
+- **Open-tabs tracking** — a task with an open tab shows a green ● Open badge (×N when several) + a red ✕ Close button on its row, in the floating window, Side Panel, Popup and Dashboard. The badge focuses the tab; Close closes exactly those tabs. Session-only, host-level.
+- **Context menus & shortcuts** — right-click to save a site to Daily Tasks, save a selection as a note, or run a script on the page. Alt+Shift+F toggles the window, Alt+Shift+T adds the current site as a task, Alt+Shift+D opens the Dashboard, Alt+Shift+N opens a quick note.
+- **Script editor, folders & install from URL** — edit scripts in the built-in editor, organise them in folders with tags and bulk actions, archive the ones you don't use, and install a script straight from its URL after a scan + your confirm.
+- **Flows & reminders** — a Flow runs a routine (tasks + scripts + note) in one click or on a schedule; a task reminder opens its sites at the time you set.
+- **Omnibox** — type `flow` + a task name in the address bar to open it.
+- **Sessions, Smart Open All, userstyles, scratchpad, dossier, collections, storage viewer, snooze** — save a set of open tabs as a session; Smart Open All skips sites already open; per-site custom CSS; a scratchpad for throwaway code; a per-site dossier; store collections; see what a script stored; snooze a task out of Open All for a while.
+- **Later** — scheduled scripts (per-script opt-in, with a run log) and opt-in sync to your own WebDAV / Gist / Drive (default OFF, tokens never in backups).
+- **Script Studio (owner build only)** — generate a script from a website link + a task, test the draft once on its real site without installing it, fix it with the AI or by hand, and publish it to the Official Store. Not in the public build.
 
 ## Publish scripts with the private Store Uploader
 
@@ -95,7 +105,7 @@ Screenshots are from the live test in real Chrome — see [`docs/LIVE_TEST_AUDIT
 - **Live Scripts** — lists every published script (total count + search) and upgrades any of them; the version field suggests a bump (1.0.0 → 1.0.1) and **Publish upgrade** uploads the new file and updates the index entry. Each card also has a **Delete** button (two clicks: arm, then confirm) — it removes the entry from `index.json` first, then deletes the file from `scripts/`, and purges both from jsDelivr; deleting needs a token, and it only stops the store listing the script (anyone who already installed it keeps their local copy).
 - No token? **Download .user.js** / **Download index.json** / **Copy index.json entry** still work — upload the two files on github.com by hand.
 
-After a publish, open the Script Store tab and click **Load store** — the new script is listed.
+After a publish, open the Script Store tab and click **Load store** — the new script is listed. The owner build can also publish from the Script Studio tab inside the extension.
 
 ## Install (Load Unpacked)
 
@@ -134,8 +144,11 @@ Chrome never updates an unpacked extension by itself — there is no self-update
 | `activeTab` | Temporary access to the tab you clicked — this is what lets the extension ask for **no host permissions at all**. |
 | `userScripts` | Register / unregister userscripts. Chrome additionally needs the **Allow User Scripts** toggle (see Install). |
 | `notifications` | Only for `GM_notification` from a running userscript. |
+| `sidePanel` | Open the native Side Panel mode. |
+| `contextMenus` | Right-click: save a site, save a selection as a note, run a script on the page. |
+| `alarms` | Reminders, scheduled Open All, scheduled scripts. |
 
-There is no `default_popup`, and no required host permission. Site access for userscripts is an *optional* permission (`*://*/*`), granted per site only when you ask a script to run.
+There is no `default_popup`, and no required host permission. Site access for userscripts is an *optional* permission (`*://*/*`), granted per site only when you ask a script to run. Optional permission: `tabGroups` — group the tabs Open All opens; granted only if you enable tab grouping.
 
 ## Honest limits
 
@@ -145,7 +158,8 @@ There is no `default_popup`, and no required host permission. Site access for us
 - The scanner is a regex heuristic: it strips comments and strings first, so it can miss obfuscated code and can flag a pattern used safely. It is a warning, never proof of safety.
 - The floating window cannot be *injected* on `chrome://`, Web Store, or other restricted pages — Chrome forbids it. Since v1.0.2 the click there opens the standalone popup instead.
 - A script with no `@match` patterns is saved but never registered.
-- The store is empty until the first script is published — **Load store** says so honestly until then.
+- The store lists 4 scripts (see [Script Store](#what-it-does) above). A script you installed stays yours even if it is later removed from the store.
+- **Script Studio is owner-only** and not in the public build. A generated draft is only a draft until you test it on its real site.
 
 ## Develop
 
@@ -163,10 +177,11 @@ Requires Node 22+. See [`docs/AUDIT.md`](docs/AUDIT.md) for the deep audit and [
 ```
 entrypoints/
   background.ts            # toolbar click, floating toggle, open-urls, script bridge, run log, popup routing
-  floating.ts              # in-page floating window (Shadow DOM, drag, tasks, scripts, bridge banner)
+  floating.ts              # in-page floating window (Shadow DOM, drag, tabs, bridge banner)
+  sidepanel/               # native Side Panel surface
   float/                   # standalone floating page for new-tab pages
-  shared/                  # tasks, scripts, engine (userScripts + GM shim), store, runs
-  dashboard/               # Overview, Daily Tasks, Scripts, Script Store, Logs, Settings
+  shared/                  # tasks, scripts, engine (userScripts + GM shim), store, runs, notes, flows, reminders, editor, folders, studio, store-publish, ai-author, updates, sync, schedules
+  dashboard/               # Overview, Daily Tasks, Scripts, Script Store, Notepad, Logs, Settings, Later (+ Script Studio in the owner build)
 tools/
   store-uploader.html      # private script publisher (single file, no server)
 public/                    # icons + wordmark used by the built extension
@@ -176,11 +191,13 @@ docs/                      # audit, live-test audit, live-test screenshots
 
 ## Status
 
-**v2.0.3 — New-tab override removed.** The v1.5+ opt-in new-tab dashboard is gone: the `chrome_url_overrides` key is removed from the manifest, the new-tab page is deleted, and the Dashboard Settings card is removed — new tabs are the browser's default again. The dashboard is reached from the toolbar icon, Alt+Shift+D, or Open Dashboard. Everything else is unchanged from v2.0.2 (multi-provider cloud LLM + model auto-detection, Side Panel, backup, Flows, open-tabs tracking). A v2.0.2 backup still restores — its `newtab` key is simply ignored. Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); not published yet — it ships after the owner's final approval.
+**v2.1.1 — Published as a public pre-release.** The public build is live at [`v2.1.1-dev-20261118`](https://github.com/BidyutRoy2/hiddengem-flow/releases/tag/v2.1.1-dev-20261118) — v2.1.0 plus the Script Studio Generate fix (tolerant draft extraction for chatty LLM replies, diagnosable errors, 4000-token cap). The owner build (with Script Studio) is not published. Live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`).
 
-**v2.0.0 — All remaining phases in one build.** Script-manager core (built-in editor, folders/tags/bulk/archive, install from URL, Allow User Scripts onboarding, GM_xmlhttpRequest + GM_setClipboard); routines (Flows, task reminders + scheduled Open All, Notes upgrade with Markdown/checklists/due dates, omnibox `flow` keyword); surfaces & depth (opt-in new-tab dashboard, sessions/workspaces, Smart Open All, per-site userstyles, scratchpad, site dossier, store collections, per-script storage viewer, local-file export, snooze queue); Later (scheduled scripts with per-script opt-in + run log, opt-in sync to the user's own WebDAV/Gist/Drive, AI authoring from local templates with BYOK cloud LLM opt-in). Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); not published yet — it ships after the owner's final approval.
+**v2.0.3 — New-tab override removed.** The v1.5+ opt-in new-tab dashboard is gone: the `chrome_url_overrides` key is removed from the manifest, the new-tab page is deleted, and the Dashboard Settings card is removed — new tabs are the browser's default again. The dashboard is reached from the toolbar icon, Alt+Shift+D, or Open Dashboard. Everything else is unchanged from v2.0.2 (multi-provider cloud LLM + model auto-detection, Side Panel, backup, Flows, open-tabs tracking). A v2.0.2 backup still restores — its `newtab` key is simply ignored. Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); superseded by v2.1.1, never released on its own.
 
-**v1.2.1 — Open-tabs tracking on all four surfaces.** A task with an open tab shows a green ● Open badge (×N when several) + a red ✕ Close button on its row — in the floating window, Side Panel, Popup and Dashboard; the badge focuses the tab, Close closes exactly those tabs, and the badge is URL-aware (navigating away drops it). Session-only, no new permissions. Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); not published yet — it ships after the owner's final approval. v1.2.0 was Side Panel + automatic backup + right-click menu + keyboard shortcuts + 3-way window mode; v1.1.0 was tabs, working Notepad and Edit layout; v1.0.0 was the final first version. Firefox comes later, after Chrome is proven.
+**v2.0.0 — All remaining phases in one build.** Script-manager core (built-in editor, folders/tags/bulk/archive, install from URL, Allow User Scripts onboarding, GM_xmlhttpRequest + GM_setClipboard); routines (Flows, task reminders + scheduled Open All, Notes upgrade with Markdown/checklists/due dates, omnibox `flow` keyword); surfaces & depth (opt-in new-tab dashboard, sessions/workspaces, Smart Open All, per-site userstyles, scratchpad, site dossier, store collections, per-script storage viewer, local-file export, snooze queue); Later (scheduled scripts with per-script opt-in + run log, opt-in sync to the user's own WebDAV/Gist/Drive, AI authoring from local templates with BYOK cloud LLM opt-in). Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); superseded by v2.1.1, never released on its own.
+
+**v1.2.1 — Open-tabs tracking on all four surfaces.** A task with an open tab shows a green ● Open badge (×N when several) + a red ✕ Close button on its row — in the floating window, Side Panel, Popup and Dashboard; the badge focuses the tab, Close closes exactly those tabs, and the badge is host-level (navigating to a different site drops it). Session-only, no new permissions. Dev build, live-tested in real Chrome (see `docs/LIVE_TEST_AUDIT.md`); superseded by v2.1.1, never released on its own. v1.2.0 was Side Panel + automatic backup + right-click menu + keyboard shortcuts + 3-way window mode; v1.1.0 was tabs, working Notepad and Edit layout; v1.0.0 was the final first version. Firefox comes later, after Chrome is proven.
 
 ## License
 
