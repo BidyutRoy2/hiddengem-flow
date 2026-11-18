@@ -29,7 +29,7 @@ Website: https://hiddengemflow.vercel.app/ — download the extension, browse th
 
 That's it — the floating window and dashboard are ready. Two grants are still needed before any userscript runs (see [Install](#install-load-unpacked)): turn **Allow User Scripts** ON in the extension's Details page, then **Grant site access** for each script's site. This is v3.0.0, the latest stable release (see [Status](#status)).
 
-### Watch: install in 60 seconds
+### Watch: the install, in a 60-second video
 
 [![Install video preview — click to watch the full 60-second video](docs/install-guide/install-preview.gif)](docs/install-guide/install.mp4)
 
