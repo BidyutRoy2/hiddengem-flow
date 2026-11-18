@@ -53,7 +53,7 @@ GitHub READMEs can't embed an mp4 player, so the preview above plays as a GIF â€
 
 **5. HiddenGem Flow appears in the extensions list**
 
-<img src="docs/install-guide/05-extension-loaded.png" width="700" alt="HiddenGem Flow listed in chrome://extensions (version 2.1.2 shown)">
+<img src="docs/install-guide/05-extension-loaded.png" width="700" alt="HiddenGem Flow listed in chrome://extensions (version 3.0.0 shown)">
 
 **6. Open Details and turn Allow User Scripts ON**
 
